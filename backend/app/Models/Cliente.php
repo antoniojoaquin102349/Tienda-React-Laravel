@@ -14,7 +14,7 @@ class Cliente extends Model
         'nombre',
         'email',
         'telefono',
-        'password',
-        'pedidos', // 👈 añade este campo porque también existe en la tabla
+        'direccion',
+        'password'
     ];
 }
