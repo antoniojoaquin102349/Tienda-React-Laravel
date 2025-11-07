@@ -1,25 +1,24 @@
 <?php
 
-// app/Models/Pedido.php
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
 class Pedido extends Model
 {
+    protected $table = 'pedidos';
+
     protected $fillable = [
-        'cliente_id', 'numero_pedido', 'subtotal', 'impuestos',
-        'descuento', 'total', 'metodo_pago', 'estado',
-        'fecha_pedido', 'fecha_envio', 'fecha_entrega',
-        'direccion_envio', 'notas'
+        'cliente_id', 'direccion_id', 'numero_pedido', 'subtotal',
+        'impuestos', 'envio', 'total', 'estado', 'notas', 'fecha_envio'
     ];
 
     protected $casts = [
-        'direccion_envio' => 'array',
-        'fecha_pedido' => 'date',
-        'fecha_envio' => 'date',
-        'fecha_entrega' => 'date',
+        'subtotal' => 'decimal:2',
+        'impuestos' => 'decimal:2',
+        'envio' => 'decimal:2',
+        'total' => 'decimal:2',
+        'fecha_envio' => 'datetime',
     ];
 
     public function cliente()
@@ -27,8 +26,33 @@ class Pedido extends Model
         return $this->belongsTo(Cliente::class);
     }
 
-    public function items()
+    public function direccion()
     {
-        return $this->hasMany(PedidoItem::class);
+        return $this->belongsTo(Direccion::class);
+    }
+
+    public function productos()
+    {
+        return $this->belongsToMany(Producto::class, 'pedido_productos')
+                    ->withPivot('nombre_producto', 'cantidad', 'precio_unitario', 'precio_oferta', 'subtotal')
+                    ->withTimestamps();
+    }
+
+    public function pago()
+    {
+        return $this->hasOne(Pago::class);
+    }
+
+    // Generar número de pedido
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($pedido) {
+            if (empty($pedido->numero_pedido)) {
+                $ultimo = self::max('id') ?? 0;
+                $pedido->numero_pedido = 'PED-' . date('Y') . '-' . str_pad($ultimo + 1, 6, '0', STR_PAD_LEFT);
+            }
+        });
     }
 }

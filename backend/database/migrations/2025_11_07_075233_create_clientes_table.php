@@ -14,14 +14,16 @@ return new class extends Migration
         Schema::create('clientes', function (Blueprint $table) {
             $table->id();
             $table->string('nombre');
+            $table->string('apellido')->nullable();
             $table->string('email')->unique();
-            $table->string('telefono')->nullable();
-            $table->string('direccion');
             $table->string('password');
+            $table->string('telefono')->nullable();
+            $table->boolean('email_verified')->default(false);
+            $table->timestamp('email_verified_at')->nullable();
+            $table->rememberToken();
             $table->timestamps();
         });
     }
-
 
     /**
      * Reverse the migrations.
