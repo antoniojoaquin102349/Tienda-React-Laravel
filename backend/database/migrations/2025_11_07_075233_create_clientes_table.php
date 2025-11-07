@@ -20,6 +20,8 @@ return new class extends Migration
             $table->string('telefono')->nullable();
             $table->boolean('email_verified')->default(false);
             $table->timestamp('email_verified_at')->nullable();
+            $table->string('google_id')->nullable()->unique();
+            $table->string('google_token')->nullable();
             $table->rememberToken();
             $table->timestamps();
         });

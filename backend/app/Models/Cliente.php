@@ -2,42 +2,41 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use PHPOpenSourceSaver\JWTAuth\Contracts\JWTSubject;
 
-class Cliente extends Authenticatable
+class Cliente extends Authenticatable implements JWTSubject
 {
     use Notifiable;
 
     protected $table = 'clientes';
 
     protected $fillable = [
-        'nombre', 'apellido', 'email', 'password', 'telefono'
+        'nombre',
+        'apellido',
+        'email',
+        'password',
+        'telefono',
+        'email_verified',
+        'email_verified_at',
+        'google_id',
+        'google_token',
     ];
 
     protected $hidden = [
-        'password', 'remember_token',
+        'password',
+        'remember_token',
     ];
 
-    protected $casts = [
-        'email_verified_at' => 'datetime',
-        'email_verified' => 'boolean',
-    ];
-
-    public function pedidos()
+    // Métodos requeridos por JWT
+    public function getJWTIdentifier()
     {
-        return $this->hasMany(Pedido::class);
+        return $this->getKey();
     }
 
-    public function direcciones()
+    public function getJWTCustomClaims()
     {
-        return $this->hasMany(Direccion::class);
-    }
-
-    // Dirección de envío predeterminada
-    public function direccionEnvioPredeterminada()
-    {
-        return $this->direcciones()->where('tipo', 'envio')->where('predeterminada', true)->first();
+        return [];
     }
 }
