@@ -10,7 +10,7 @@ const Register = () => {
         name: 'Juan Perez',
         email: 'example@example.com',
         password: '',
-        confirmPassword: ''
+        password_confirmation: ''
     };
 
     const validationSchema = Yup.object({
@@ -18,7 +18,7 @@ const Register = () => {
         email: Yup.string().email("Correo electrónico no es válido").required("El correo electrónico es obligatorio"),
         password: Yup.string().min(6, "La contraseña debe tener al menos 6 caracteres")
             .max(50, "La contraseña no debe exceder los 50 caracteres").required("La contraseña es obligatoria"),
-        confirmPassword: Yup.string()
+        password_confirmation: Yup.string()
             .oneOf([Yup.ref("password")], "Las contraseñas deben coincidir")
             .required("La confirmación de la contraseña es obligatoria"),
     });
@@ -45,7 +45,7 @@ const Register = () => {
                                     <InputLabel label="contraseña" id="password" type="password" name="password" placeholder="*********" 
                                     error={errors.password} onChange={handleChange} value={values.password} /> 
                                     <InputLabel label="confirmar contraseña" id="confirmPassword" type="password" name="confirmPassword" placeholder="*********" 
-                                        error={errors.confirmPassword} onChange={handleChange} value={values.confirmPassword} /> 
+                                        error={errors.password_confirmation} onChange={handleChange} value={values.password_confirmation} /> 
                                     <Button value="Registrarse" type="submit" />
                                     <p className="text-sm font-light text-gray-500 dark:text-gray-400">
                                         ¿Ya tienes una cuenta? <a href="/login" className="font-medium text-primary-600 hover:underline dark:text-primary-500">Iniciar sesión</a>
