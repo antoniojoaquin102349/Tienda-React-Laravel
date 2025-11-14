@@ -1,8 +1,7 @@
 <?php
 
-use App\Http\Controllers\Auth\GoogleController;
-use App\Http\Controllers\Api\ProductController;
+use Illuminate\Support\Facades\Route;
 
-Route::get('auth/google', [GoogleController::class, 'redirectToGoogle']);
-Route::get('auth/google/callback', [GoogleController::class, 'handleGoogleCallback']);
-Route::get('/products', [ProductController::class, 'index']);
+Route::get('/', function () {
+    return view('welcome');
+});
