@@ -4,39 +4,33 @@ namespace App\Exceptions;
 
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
 use Throwable;
-use Illuminate\Validation\ValidationException;
+use Tymon\JWTAuth\Exceptions\TokenExpiredException;
+use Tymon\JWTAuth\Exceptions\TokenInvalidException;
+use Tymon\JWTAuth\Exceptions\JWTException;
 
 class Handler extends ExceptionHandler
 {
-    /**
-     * Lista de tipos de excepciones que no se reportan.
-     */
-    protected $dontReport = [];
-
-    /**
-     * Lista de inputs que no se muestran en los mensajes de validación.
-     */
-    protected $dontFlash = [
-        'current_password',
-        'password',
-        'password_confirmation',
-    ];
-
-    protected function convertValidationExceptionToResponse(ValidationException $e, $request)
+    public function render($request, Throwable $exception)
     {
-    
-        if ($e->response) {
-            return $e->response;
+        // Forzar JSON en todas las rutas de API
+        if ($request->is('api/*')) {
+            if ($exception instanceof TokenExpiredException) {
+                return response()->json(['status' => 'Token is expired'], 401);
+            }
+            if ($exception instanceof TokenInvalidException) {
+                return response()->json(['status' => 'Token is invalid'], 401);
+            }
+            if ($exception instanceof JWTException) {
+                return response()->json(['status' => 'Authorization Token not found'], 401);
+            }
+
+            // Otros errores de API
+            return response()->json([
+                'status' => 'Internal Server Error',
+                'message' => $exception->getMessage(),
+            ], 500);
         }
-        return $this->invalidJson($request, $e);
-    }
 
-
-    public function invalidJson($request, ValidationException $e)
-    {
-        return response()->json([
-            'message' => $e->getmessage(),
-            'errors' => $e->errors(),
-            ], $e->status);
+        return parent::render($request, $exception);
     }
 }

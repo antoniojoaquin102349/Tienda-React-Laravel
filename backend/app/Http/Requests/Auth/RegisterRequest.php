@@ -3,6 +3,8 @@
 namespace App\Http\Requests\Auth;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Tymon\JWTAuth\Facades\JWTAuth;
 
 
@@ -28,5 +30,12 @@ class RegisterRequest extends FormRequest
             'email'=>'required|email|unique:users,email',
             'password'=>'required|string|min:6|max:50|confirmed',
         ];
+    }
+
+    protected function failedValidation(Validator $validator)
+    {
+        throw new HttpResponseException(response()->json([
+            'errors' => $validator->errors(),
+        ], 422));
     }
 }
