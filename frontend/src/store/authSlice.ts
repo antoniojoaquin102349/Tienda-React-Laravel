@@ -73,17 +73,21 @@ export const checkAuth = createAsyncThunk(
   "auth/checkAuth",
   async (_, { getState, dispatch }) => {
     const state = getState() as { auth: AuthState };
-    if (state.auth.token) {
-      try {
-        const response = await Api.get("/me"); // Ajusta endpoint según tu backend
+    if (!state.auth.token) throw new Error("No hay token");
+
+    try {
+      const response = await Api.get<{ user: IUser }>("/me");
+
+      if (response.statusCode === 200 && response.data?.user) {
         return response.data.user;
-      } catch {
-        localStorage.removeItem("token");
-        dispatch(logoutUser());
-        throw new Error("Token inválido");
       }
+
+      throw new Error("Respuesta inválida");
+    } catch {
+      localStorage.removeItem("token");
+      dispatch(logoutUser());
+      throw new Error("Token inválido o expirado");
     }
-    throw new Error("No hay token");
   }
 );
 

@@ -70,7 +70,7 @@ const Login = () => {
   const onSubmit = async (values: typeof initialValues) => {
     dispatch(loginUser(values)).then((response) => {
       if (response.type === "auth/loginUser/fulfilled") {
-        navigate("/dashboard");
+        navigate("/");
       } else {
         Swal.fire({
           position: "top-end",

@@ -5,7 +5,7 @@ import InputLabel from "../components/input/InputLabel";
 import { registerUser } from "../store/authSlice";
 import { useAppDispatch } from "../store";
 import { useNavigate } from "react-router";
-
+import { setCredentials } from "../store/authSlice";
 const Register = () => {
     const dispath = useAppDispatch();
 
@@ -33,8 +33,12 @@ const Register = () => {
         ) => {
         try {
             const response = await dispath(registerUser(values)).unwrap(); // unwrap retorna el payload real tipado
+            // Guardar token en localStorage
+            localStorage.setItem("token", response.token);
+            // Guardar usuario en Redux (si tienes slice de auth)
+            dispath(setCredentials ({ token: response.token, user: response.user }));
             // Si todo va bien, redirige
-            navigate("/dashboard");
+            navigate("/");
         } catch (error: any) {
             // error es el payload rechazado
             if (error?.errors) {
@@ -42,8 +46,8 @@ const Register = () => {
                 setFieldError(key, (value as string[])[0]);
             });
             }
-  }
-};
+        }
+    };
 
     return (    
         <section className="bg-gray-50 dark:bg-gray-900">
