@@ -3,8 +3,16 @@ import Login from "../pages/Login";
 import Register from "../pages/Register";
 import Customer from "../pages/Customer"
 import BaseDashBoard from "../pages/layout/BaseDashBoard";
+import AuthGoogleCallback from "../pages/auth/AuthGoogleCallback";
 
-export const routes = [
+type TypeRoute = {
+    path: string;
+    element: any;
+    isProtected?: boolean;
+    children?: TypeRoute[]; 
+}
+
+export const routes: TypeRoute[] = [
     { 
         path: "/", 
         element: Home
@@ -18,8 +26,13 @@ export const routes = [
         element: Register
     },
     {
+        path: "/auth/google/success",
+        element: AuthGoogleCallback,
+    },
+    {
         path: "/dashboard",
         element: BaseDashBoard,
+        isProtected: true,
         children: [
             {
                 path: "",
@@ -27,4 +40,5 @@ export const routes = [
             },
         ],       
     }
+    
 ];  

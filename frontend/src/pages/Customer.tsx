@@ -1,6 +1,8 @@
 const Customer = () => {    
     return (
-        <div>Customer</div>
+        <div>
+            <h1>hola </h1>
+        </div>
     )
 }
 export default Customer;
