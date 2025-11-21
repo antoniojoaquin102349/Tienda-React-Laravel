@@ -1,9 +1,8 @@
 <?php
 
-namespace App\Filament\Resources\Productos\Pages;
+namespace App\Filament\Resources\ProductosResource\Pages;
 
-use App\Filament\Resources\ProductosResource; // ✅ namespace correcto
-use Filament\Actions\CreateAction;
+use App\Filament\Resources\ProductosResource;
 use Filament\Resources\Pages\ManageRecords;
 
 class ManageProductos extends ManageRecords
@@ -13,7 +12,7 @@ class ManageProductos extends ManageRecords
     protected function getHeaderActions(): array
     {
         return [
-            CreateAction::make(),
+            \Filament\Actions\CreateAction::make(),
         ];
     }
 }
