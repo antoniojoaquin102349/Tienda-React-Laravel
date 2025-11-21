@@ -1,0 +1,17 @@
+[33md90ae17[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mfeature[m[33m, [m[1;31morigin/feature[m[33m)[m Creando interfaz de administrador
+[33m54f6641[m pagina principal maquetada
+[33m2fa3cb9[m pagina principal maquetada
+[33m548e7ad[m login y login google en backend
+[33m31826d1[m login y login google
+[33m24c30a8[m Laravel configurado con login y registro y en react pagina de login y registro creada
+[33mcc60c12[m[33m ([m[1;31morigin/master[m[33m, [m[1;32mmaster[m[33m)[m Laravel configurado con login y registro y en react pagina de login y registro creada
+[33mc09b78a[m Rutas principales creadas
+[33mdd298bb[m montada parte visual basica
+[33m16b048b[m queda montado react con tailwind
+[33m02271bf[m Certificación con google en funcionamiento ya muestra el token
+[33m1dd7002[m Certificación con google en funcionamiento
+[33m0a8376c[m estructura de tablas y campos creada correctamente
+[33m97a417a[m he hecho pruebas con los seeder como voy a estructurar la base de datos y carpetas
+[33m4b7e8e9[m Modificación del archivo Cliente.php para añadir el campo pedidos
+[33m1c0303c[m Montar laravel en base de datos creada en xampp
+[33m7ba728c[m laravel y react montado
