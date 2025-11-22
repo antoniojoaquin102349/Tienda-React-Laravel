@@ -1,19 +1,41 @@
-import { useState } from "react";
-import { Link } from "react-router";
+import { useState, useRef, useEffect } from "react";
+import { Link } from "react-router-dom"; // Corregido: react-router-dom
 import { useSelector, useDispatch } from "react-redux";
 import type { RootState } from "../store";
 import { logoutUser } from "../store/authSlice";
+import Productos from "../components/Productos";
 
 const Home = () => {
   const dispatch = useDispatch();
   const user = useSelector((state: RootState) => state.auth.user);
   const userName = user?.name || "Invitado";
+  const [searchTerm, setSearchTerm] = useState("");
+
+  // Estado del dropdown
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const handleLogout = () => dispatch(logoutUser());
 
-  // Estado para abrir/cerrar el dropdown
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const toggleDropdown = () => setIsDropdownOpen(!isDropdownOpen);
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    window.location.href = `/productos?q=${encodeURIComponent(searchTerm)}`;
+  };
+
+  // Cerrar el dropdown al hacer clic fuera
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Alternar dropdown con clic
+  const toggleDropdown = () => setIsDropdownOpen(prev => !prev);
 
   return (
     <div className="w-full min-h-screen flex flex-col">
@@ -23,10 +45,12 @@ const Home = () => {
         <div className="text-sm">Hola, {userName}</div>
 
         {/* Buscador */}
-        <form className="flex items-center gap-2">
+        <form className="flex items-center gap-2" onSubmit={handleSearch}>
           <input
             type="text"
             placeholder="Buscar por referencia o nombre..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
             className="px-3 py-2 rounded-md text-black w-64"
           />
           <button
@@ -39,23 +63,61 @@ const Home = () => {
 
         {/* NAV LINKS */}
         <nav className="flex gap-6 items-center text-sm">
-          {/* Dropdown Categorías */}
-          <div className="relative"  onMouseLeave={() => setIsDropdownOpen(false)} >
+          {/* Dropdown Categorías - SOLO CON CLIC */}
+          <div className="relative" ref={dropdownRef}>
             <button
+              type="button"
               onClick={toggleDropdown}
-              className="text-black hover:text-yellow-400 font-medium"
+              className="text-black hover:text-yellow-400 font-medium flex items-center gap-1 transition-colors"
             >
-              Categorías ▾
+              Categorías <span className={`transform transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`}>▼</span>
             </button>
 
+            {/* Dropdown */}
             {isDropdownOpen && (
-              <div className="absolute bg-white text-black shadow-md rounded min-w-[150px] mt-2 z-20">
-                <Link className="block px-4 py-2 hover:bg-gray-100" to="/productos?cat=Carroceria">Carrocería</Link>
-                <Link className="block px-4 py-2 hover:bg-gray-100" to="/productos?cat=Suspension">Suspensión</Link>
-                <Link className="block px-4 py-2 hover:bg-gray-100" to="/productos?cat=Mecanica">Mecánica</Link>
-                <Link className="block px-4 py-2 hover:bg-gray-100" to="/productos?cat=Ruedas">Ruedas</Link>
-                <Link className="block px-4 py-2 hover:bg-gray-100" to="/productos?cat=Electricidad">Electricidad</Link>
-                <Link className="block px-4 py-2 hover:bg-gray-100" to="/productos?cat=Accesorios">Accesorios</Link>
+              <div className="absolute left-0 top-full mt-2 w-48 bg-white text-black shadow-lg rounded-md overflow-hidden z-50">
+                <Link
+                  to="/productos?cat=Carroceria"
+                  className="block px-4 py-3 hover:bg-gray-100 transition-colors"
+                  onClick={() => setIsDropdownOpen(false)} // Cierra al seleccionar
+                >
+                  Carrocería
+                </Link>
+                <Link
+                  to="/productos?cat=Suspension"
+                  className="block px-4 py-3 hover:bg-gray-100 transition-colors"
+                  onClick={() => setIsDropdownOpen(false)}
+                >
+                  Suspensión
+                </Link>
+                <Link
+                  to="/productos?cat=Mecanica"
+                  className="block px-4 py-3 hover:bg-gray-100 transition-colors"
+                  onClick={() => setIsDropdownOpen(false)}
+                >
+                  Mecánica
+                </Link>
+                <Link
+                  to="/productos?cat=Ruedas"
+                  className="block px-4 py-3 hover:bg-gray-100 transition-colors"
+                  onClick={() => setIsDropdownOpen(false)}
+                >
+                  Ruedas
+                </Link>
+                <Link
+                  to="/productos?cat=Electricidad"
+                  className="block px-4 py-3 hover:bg-gray-100 transition-colors"
+                  onClick={() => setIsDropdownOpen(false)}
+                >
+                  Electricidad
+                </Link>
+                <Link
+                  to="/productos?cat=Accesorios"
+                  className="block px-4 py-3 hover:bg-gray-100 transition-colors"
+                  onClick={() => setIsDropdownOpen(false)}
+                >
+                  Accesorios
+                </Link>
               </div>
             )}
           </div>
@@ -83,7 +145,7 @@ const Home = () => {
       {/* HERO */}
       <section
         className="relative w-full h-[80vh] bg-cover bg-center flex items-center"
-        style={{ backgroundImage: "url('/public/fondo.JPG')" }}
+        style={{ backgroundImage: "url('uploads/fondo.JPG')" }} // Corregido: sin /public
       >
         <div className="absolute inset-0 bg-black/40"></div>
 
@@ -102,21 +164,9 @@ const Home = () => {
       </section>
 
       {/* PRODUCTOS DESTACADOS */}
-      <section className="py-12 px-6 md:px-12 bg-gray-100">
-        <h2 className="text-2xl font-bold text-center mb-8">Productos destacados</h2>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-          <div className="bg-white shadow-md p-4 rounded">
-            <div className="h-40 bg-gray-300"></div>
-            <p className="mt-2">Referencia: ---</p>
-            <p>Nombre: Producto de Ejemplo</p>
-            <p>Precio: 0.00 €</p>
-            <button className="mt-3 w-full bg-green-600 text-white py-2 rounded hover:bg-green-700">
-              Añadir al carrito
-            </button>
-          </div>
-        </div>
-      </section>
+      <div>
+        <Productos />
+      </div>
     </div>
   );
 };

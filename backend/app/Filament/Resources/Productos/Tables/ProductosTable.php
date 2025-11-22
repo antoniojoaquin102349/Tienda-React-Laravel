@@ -16,6 +16,13 @@ class ProductosTable
                     ->sortable(),
                 \Filament\Tables\Columns\TextColumn::make('referencia')
                     ->searchable(),
+                \Filament\Tables\Columns\TextColumn::make('categoria')
+                    ->searchable()
+                    ->sortable(),
+                \Filament\Tables\Columns\IconColumn::make('vendido')
+                    ->label('Vendido')
+                    ->sortable()
+                    ->color(fn ($state) => $state > 0 ? 'success' : 'secondary'),
                 \Filament\Tables\Columns\TextColumn::make('precio')
                     ->money('eur')
                     ->sortable(),

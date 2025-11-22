@@ -1,8 +1,9 @@
 import Home from "../pages/Home";
 import Login from "../pages/Login";
-import Register from "../pages/Register";
-import AcercaDe from "../pages/acercade";
 import Cesta from "../pages/Cesta.tsx";
+import Register from "../pages/Register";
+import AcercaDe from "../pages/AcercaDe";
+import ListaProductos from "../pages/ListaProductos";
 import AuthGoogleCallback from "../pages/auth/AuthGoogleCallback";
 
 type TypeRoute = {
@@ -37,7 +38,10 @@ export const routes: TypeRoute[] = [
         path: "/Cesta",
         element: Cesta
     },
-
+    {
+        path: "/productos",
+        element: ListaProductos 
+    }
     
     
 ];  
