@@ -56,7 +56,7 @@ const Cesta = () => {
 
     if (nuevoCarrito.length === 0) {
       setMostrarModalCarritoVacio(true);
-      setTimeout(() => navigate("/"), 2500);
+      setTimeout(() => navigate("/"), 1500);
     }
   };
 
@@ -68,7 +68,7 @@ const Cesta = () => {
     setCarrito([]);
     setMostrarModalConfirmarVaciado(false);
     setMostrarModalCarritoVacio(true);
-    setTimeout(() => navigate("/"), 2500);
+    setTimeout(() => navigate("/"), 1000);
   };
 
   const cancelarVaciado = () => {
@@ -185,25 +185,30 @@ const Cesta = () => {
         </div>
       </div>
 
-      {/* Modales manejados por el componente MensajeModal */}
-        <MensajeModal
-          isOpen={mostrarModalConfirmarVaciado}
-          onClose={cancelarVaciado}
-          titulo="Vaciar carrito"
-          mensaje="¿Seguro que deseas vaciar todo el carrito?"
-          mostrarBotones={true}
-          textoBotonPrimario="Vaciar"
-          textoBotonSecundario="Cancelar"
-          onConfirmar={confirmarVaciado}
-        />
+        {/* Modales manejados por el componente MensajeModal */}
+          <MensajeModal
+            isOpen={mostrarModalCarritoVacio}
+            onClose={() => setMostrarModalCarritoVacio(false)}
+            titulo="Carrito"
+            mensaje="Tu carrito está vacío."
+            mostrarCerrar={false}   // oculta la X
+            autoCerrarMs={1500}     
+          />
 
-        <MensajeModal
-          isOpen={mostrarModalCarritoVacio}
-          onClose={() => setMostrarModalCarritoVacio(false)}
-          titulo="Carrito "
-          mensaje="Tu carrito está vacío."
-        />
-    </div>
+          <MensajeModal
+            isOpen={mostrarModalConfirmarVaciado}
+            onClose={cancelarVaciado}
+            titulo="Vaciar carrito"
+            mensaje="¿Seguro que deseas vaciar todo el carrito?"
+            mostrarBotones={true}
+            mostrarCerrar={false}  // oculta la X
+            textoBotonPrimario="Vaciar"
+            textoBotonSecundario="Cancelar"
+            onConfirmar={confirmarVaciado}
+            autoCerrarMs={2500}
+          />
+      </div>
+
   );
 };
 

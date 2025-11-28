@@ -1,13 +1,17 @@
-import { useState, useEffect } from "react";
+import MensajeModal from "../components/MensajeModal";
 import { Link, useNavigate } from "react-router-dom";
+import { setCredentials } from "../store/authSlice";
+import { useState, useEffect } from "react";
 import { Api } from "../services/Api";
+import { store } from "../store";
+
 
 const Checkout = () => {
   const [carrito, setCarrito] = useState<any[]>([]);
   const [mensaje, setMensaje] = useState("");
   const [loading, setLoading] = useState(false);
   const [exito, setExito] = useState(false);
-  const [guardadoPrevio, setGuardadoPrevio] = useState(false);
+  const [_guardadoPrevio, setGuardadoPrevio] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -91,6 +95,8 @@ const Checkout = () => {
     0
   );
 
+  const [mostrarLoginModal, setMostrarLoginModal] = useState(false);
+
   const realizarPedido = async () => {
     if (!validarFormulario() || loading) return;
 
@@ -98,27 +104,50 @@ const Checkout = () => {
     setMensaje("");
 
     try {
-      const response = await Api.post("/guardar-pedido", {
-        cliente: form,
-        carrito: carrito,
-      });
+      // Primero verificamos si el email del formulario ya existe en el backend
+      const existeResp = await Api.post("/check-email", { email: form.email });
+      const existeData = (existeResp as any).data;
 
-      if (response.statusCode === 200 || response.statusCode === 201) {
-        if (form.guardarPago && !guardadoPrevio)
-          localStorage.setItem("metodo_pago_guardado", "true");
-
-        localStorage.removeItem("carrito");
-        setCarrito([]);
-
-        setExito(true);
-
-        setTimeout(() => {
-          navigate("/", { replace: true });
-        }, 2000);
-      } else {
-        setMensaje(response.error || "Error al procesar el pedido");
+      if (existeData?.existe) {
+        // El usuario ya está registrado pero no tiene token → mostrar modal
+        const tokenExistente = localStorage.getItem("token");
+        if (!tokenExistente) {
+          setMostrarLoginModal(true);
+          setLoading(false);
+          return;
+        }
       }
-    } catch {
+
+      // Si no existe, seguimos normalmente → backend creará usuario automáticamente
+      const response = await Api.post("/guardar-pedido", { cliente: form, carrito });
+      const resp = response as any;
+      const data = resp.data;
+
+      if (!data) {
+        setMensaje("Error: respuesta inválida del servidor");
+        setLoading(false);
+        return;
+      }
+
+      const token = data.token ?? resp.token;
+
+      if (token) {
+        localStorage.setItem("token", token);
+        const meResp = await Api.get("/me");
+        const me = (meResp as any).data;
+        if (me?.user) {
+          localStorage.setItem("user", JSON.stringify(me.user));
+          store.dispatch(setCredentials({ token, user: me.user }));
+        }
+      }
+
+      localStorage.removeItem("carrito");
+      setCarrito([]);
+      setExito(true);
+      setTimeout(() => navigate("/", { replace: true }), 2000);
+
+    } catch (error) {
+      console.error(error);
       setMensaje("Error al procesar el pedido");
     } finally {
       setLoading(false);
@@ -288,6 +317,19 @@ const Checkout = () => {
 
           <Link to="/cesta" className="block mt-4 text-gray-500 hover:underline">← Volver al carrito</Link>
         </div>
+        
+        {/* ----------------- MODAL ----------------- */}
+        <MensajeModal
+          isOpen={mostrarLoginModal}
+          onClose={() => {
+            setMostrarLoginModal(false);
+            navigate("/login");
+          }}
+        titulo="Debes iniciar sesión"
+        mensaje="Para realizar un pedido debes iniciar sesión."
+        autoCerrarMs={1800}
+        mostrarCerrar={false}
+        /> 
 
       </div>
     </div>

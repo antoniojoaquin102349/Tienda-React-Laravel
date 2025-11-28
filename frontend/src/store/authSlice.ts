@@ -16,10 +16,11 @@ interface AuthState {
 }
 
 const tokenFromStorage = localStorage.getItem("token");
+const userFromStorage = localStorage.getItem("user");
 
 const initialState: AuthState = {
   token: tokenFromStorage,
-  user: null,
+  user: userFromStorage ? JSON.parse(userFromStorage) : null,
   islogin: !!tokenFromStorage,
   isloading: false,
 };
@@ -41,6 +42,7 @@ export const loginUser = createAsyncThunk(
       if (response.statusCode === 200) {
         const { token, user } = response.data as { token: string; user: IUser };
         localStorage.setItem("token", token);
+        localStorage.setItem("user", JSON.stringify(user));
         return { token, user };
       }
       return rejectWithValue(response.data);
@@ -59,6 +61,7 @@ export const registerUser = createAsyncThunk(
       if (response.statusCode === 201) {
         const { token, user } = response.data as { token: string; user: IUser };
         localStorage.setItem("token", token);
+        localStorage.setItem("user", JSON.stringify(user));
         return { token, user };
       }
       return rejectWithValue(response.data);
@@ -79,12 +82,14 @@ export const checkAuth = createAsyncThunk(
       const response = await Api.get<{ user: IUser }>("/me");
 
       if (response.statusCode === 200 && response.data?.user) {
+        localStorage.setItem("user", JSON.stringify(response.data.user));
         return response.data.user;
       }
 
       throw new Error("Respuesta inválida");
     } catch {
       localStorage.removeItem("token");
+      localStorage.removeItem("user");
       dispatch(logoutUser());
       throw new Error("Token inválido o expirado");
     }
@@ -131,7 +136,10 @@ const authSlice = createSlice({
       // === Login con Google ===
       .addCase(setCredentials, (state, action) => {
         state.token = action.payload.token;
-        localStorage.setItem("token", action.payload.token); // Guardar token
+        localStorage.setItem("token", action.payload.token);
+        if (action.payload.user) {
+          localStorage.setItem("user", JSON.stringify(action.payload.user));
+        }
         state.user = action.payload.user || null;
         state.islogin = true;
         state.isloading = false;
@@ -144,6 +152,7 @@ const authSlice = createSlice({
         state.islogin = false;
         state.isloading = false;
         localStorage.removeItem("token");
+        localStorage.removeItem("user");
       })
 
       // === Check Auth al cargar la app ===

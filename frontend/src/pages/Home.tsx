@@ -136,8 +136,7 @@ const Home = () => {
 
       {/* HERO */}
       <section
-        className="relative w-full h-[80vh] bg-cover bg-center flex items-center justify-start"
-        style={{ backgroundImage: "url('/fondo.JPG')" }}
+        className="relative w-full h-[80vh] bg-cover bg-center flex items-center justify-start bg-[url('/fondo.JPG')]"
       >
         <div className="absolute inset-0 bg-black/50"></div>
         <div className="relative z-10 px-10 md:px-20 max-w-3xl">

@@ -2,6 +2,7 @@
 
 
 import type { ReactNode } from 'react';
+import { useEffect } from 'react';
 
 interface MensajeModalProps {
   isOpen: boolean;
@@ -14,6 +15,8 @@ interface MensajeModalProps {
   textoBotonSecundario?: string;
   onConfirmar?: () => void;
   tipoContenido?: 'producto' | 'confirmacion' | 'mensaje';
+  mostrarCerrar?: boolean; 
+  autoCerrarMs?: number;    
 }
 
 const MensajeModal: React.FC<MensajeModalProps> = ({
@@ -26,14 +29,25 @@ const MensajeModal: React.FC<MensajeModalProps> = ({
   textoBotonPrimario = 'Confirmar',
   textoBotonSecundario = 'Cancelar',
   onConfirmar,
-  tipoContenido = 'mensaje'
+  tipoContenido = 'mensaje',
+  mostrarCerrar = true,
+  autoCerrarMs
 }) => {
+
+  // Auto-cierre
+  useEffect(() => {
+    if (isOpen && autoCerrarMs) {
+      const timer = setTimeout(onClose, autoCerrarMs);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen, autoCerrarMs, onClose]);
+
   if (!isOpen) return null;
 
   return (
     <div
       className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-      onClick={onClose}
+      onClick={autoCerrarMs ? undefined : onClose} // si tiene auto-cierre, click fuera no cierra
     >
       <div
         className={`bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-screen overflow-y-auto relative ${
@@ -41,12 +55,14 @@ const MensajeModal: React.FC<MensajeModalProps> = ({
         }`}
         onClick={(e) => e.stopPropagation()}
       >
-        <button
-          onClick={onClose}
-          className="absolute top-6 right-6 text-4xl text-gray-500 hover:text-gray-800 z-10"
-        >
-          ×
-        </button>
+        {mostrarCerrar && (
+          <button
+            onClick={onClose}
+            className="absolute top-6 right-6 text-4xl text-gray-500 hover:text-gray-800 z-10"
+          >
+            ×
+          </button>
+        )}
 
         <div className="text-center">
           <h2 className="text-2xl font-bold mb-4">{titulo}</h2>
@@ -79,5 +95,6 @@ const MensajeModal: React.FC<MensajeModalProps> = ({
     </div>
   );
 };
+
 
 export default MensajeModal;

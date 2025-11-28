@@ -109,6 +109,7 @@ class PedidoController extends Controller
                 'producto_id' => $item['id'] ?? null,
                 'nombre' => $item['nombre'],
                 'referencia' => $item['referencia'] ?? '',
+                'imagen' => $item['imagen'] ?? '',
                 'precio' => $item['precio'],
                 'cantidad' => $item['cantidad'],
             ]);
@@ -133,5 +134,19 @@ class PedidoController extends Controller
         ], 201);
     }
 
-    // Resto de métodos sin cambios...
+    public function misPedidos()
+    {
+        // Obtener el usuario autenticado desde JWT
+        $user = JWTAuth::user();
+
+        if (!$user) {
+            return response()->json(['error' => 'No autenticado'], 401);
+        }
+
+        // Traer los pedidos del usuario, con sus productos relacionados
+        $pedidos = Pedido::with('productos')->where('user_id', $user->id)->get();
+
+        return response()->json($pedidos);
+    }
+
 }

@@ -23,13 +23,21 @@ const HistorialPedidos = () => {
   const navigate = useNavigate();
 
   const BASE_URL = import.meta.env.VITE_APP_URL || "http://127.0.0.1:8000";
+  const [_modalLogin, setModalLogin] = useState(false);
+
 
   useEffect(() => {
     const token = localStorage.getItem("token");
 
     if (!token) {
-      alert("Debes iniciar sesión para ver tu historial");
-      navigate("/login");
+      // Abrir modal
+      setModalLogin(true);
+
+      // Redirigir después de 2.5s (igual que autoCerrarMs)
+      setTimeout(() => {
+        navigate("/login");
+      }, 2000);
+
       return;
     }
 
@@ -46,13 +54,6 @@ const HistorialPedidos = () => {
             precio: Number(prod.precio) || 0,
           })),
         }));
-
-        // Debug: mostrar los datos de imagen que llegan de la API
-        pedidosConTotalNumero.forEach((pedido: Pedido) => {
-          pedido.productos.forEach((prod: Producto) => {
-            console.log(`Producto: ${prod.nombre}, imagen:`, prod.imagen, `Tipo: ${typeof prod.imagen}`);
-          });
-        });
 
         setPedidos(pedidosConTotalNumero);
         setLoading(false);
@@ -115,7 +116,7 @@ const HistorialPedidos = () => {
           <div className="space-y-10">
             {pedidos.map((pedido) => (
               <div key={pedido.id} className="bg-white rounded-2xl shadow-xl overflow-hidden">
-                <div className="bg-gradient-to-r from-green-600 to-green-700 text-white p-6">
+                <div className="_bg-gradient-to-r from-green-600 to-green-700 text-white p-6">
                   <div className="flex justify-between items-center">
                     <h2 className="text-2xl font-bold">Pedido #{pedido.id}</h2>
                     <div className="text-right">
@@ -139,7 +140,7 @@ const HistorialPedidos = () => {
                         key={i}
                         className="flex items-center gap-4 bg-gray-50 p-5 rounded-xl hover:bg-gray-100 transition"
                       >
-                        <div className="w-28 h-28 flex-shrink-0 relative">
+                        <div className="w-28 h-28 _flex-shrink-0 relative">
                           {prod.imagen && prod.imagen.toString().trim() !== "" ? (
                             <img
                               src={`${BASE_URL}/storage/${prod.imagen}`}

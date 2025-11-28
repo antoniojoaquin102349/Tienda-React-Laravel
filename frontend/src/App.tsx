@@ -6,7 +6,7 @@ import { routes } from "./routes/route";
 import { createElement, useEffect } from "react";
 import { persistor, store } from "./store";
 import ProtectedRoute from "./pages/ProtectedRoute";
-import { checkAuth, logoutUser } from "./store/authSlice"; // ← AÑADE ESTO
+import { checkAuth, logoutUser } from "./store/authSlice";
 
 // Componente que se ejecuta cuando Redux ya está rehidratado
 const AuthInitializer = () => {
@@ -22,6 +22,7 @@ const AuthInitializer = () => {
         .catch(() => {
           // Token inválido o expirado → limpiamos todo
           localStorage.removeItem("token");
+          localStorage.removeItem("user");
           dispatch(logoutUser());
         });
     } else {
@@ -55,13 +56,9 @@ function App() {
 
   return (
     <Provider store={store}>
-      <PersistGate
-        loading={null} // puedes poner un spinner aquí si quieres
-        persistor={persistor}
-      >
+      <PersistGate loading={null} persistor={persistor}>
         {/* Este componente se monta SOLO cuando el store está rehidratado */}
         <AuthInitializer />
-        
         <RouterProvider router={router} />
       </PersistGate>
     </Provider>
