@@ -29,7 +29,7 @@ const Login = () => {
       dispatch(setCredentials({ token }));
 
       // Limpiar URL y redirigir
-      navigate("/dashboard", { replace: true });
+      navigate("/", { replace: true });
     }
 
     if (error) {
@@ -48,7 +48,7 @@ const Login = () => {
   // 2. Redirección automática si ya está logueado (login normal o Google)
   useEffect(() => {
     if (islogin) {
-      navigate("/dashboard", { replace: true });
+      navigate("/", { replace: true });
     }
   }, [islogin, navigate]);
 

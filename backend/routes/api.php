@@ -1,63 +1,94 @@
 <?php
 
-use App\Models\Producto;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\User\UserController;
+use App\Http\Controllers\Api\PedidoController;
 use App\Http\Controllers\Api\ProductoController;
 
-Route::prefix('auth')->group(function(){
-    Route::post('register',[AuthController::class, 'register']);
-    Route::post('login',[AuthController::class, 'login']);
+/*
+|--------------------------------------------------------------------------
+| API Routes
+|--------------------------------------------------------------------------
+*/
 
-     // Google OAuth (sin JWT)
-    Route::get('google', [AuthController::class, 'redirectToGoogle']);
+// =========================
+// AUTH (Públicas - sin autenticación)
+// =========================
+Route::prefix('auth')->name('auth.')->group(function () {
+    Route::post('register', [AuthController::class, 'register'])->name('register');
+    Route::post('login', [AuthController::class, 'login'])->name('login');
+
+    // Google OAuth
+    Route::get('google', [AuthController::class, 'redirectToGoogle'])->name('google');
     Route::get('google/callback', [AuthController::class, 'handleGoogleCallback']);
-    
-}); 
+});
 
-Route::middleware(['jwt.verify'])->group(function(){
-    // Rutas protegidas
-    Route::get('users', [UserController::class, 'index']); 
-}); 
+// =========================
+// PEDIDOS (Usuarios e invitados)
+// =========================
+// Ruta unificada para usuarios logueados e invitados
+Route::post('/guardar-pedido', [PedidoController::class, 'store']);
 
-// 📈 Endpoint para obtener los productos más vendidos
-Route::get('/productos/buscar', [ProductoController::class, 'buscar']);
-Route::get('/productos/mas-vendidos', [ProductoController::class, 'masVendidos']);
+// =========================
+// RUTAS PROTEGIDAS CON JWT
+// =========================
+Route::middleware('jwt.auth')->group(function () {
 
+    // Perfil del usuario autenticado
+    Route::get('/me', [AuthController::class, 'me']);
 
-// 🔎 Endpoint para buscar productos
-Route::get('/productos/buscar', function(Request $request) {
-    $q = $request->input('q');   // término de búsqueda
-    $cat = $request->input('cat'); // categoría seleccionada
+    // Refresh token
+    Route::post('/refresh', [AuthController::class, 'refresh']);
 
-    $query = Producto::query();
+    // Logout
+    Route::post('/logout', [AuthController::class, 'logout']);
 
-    // Filtrar por texto: nombre, referencia o categoría
-    if ($q) {
-        $query->where(function($sub) use ($q) {
-            $sub->where('nombre', 'LIKE', "%{$q}%")
-                ->orWhere('referencia', 'LIKE', "%{$q}%")
-                ->orWhere('categoria', 'LIKE', "%{$q}%");
-        });
-    }
+    // Usuarios (solo admin o según tu lógica)
+    Route::get('users', [UserController::class, 'index']);
 
-    // Filtrar por categoría, normalizando acentos (MySQL)
-    if ($cat) {
-        $catNormalized = str_replace(
-            ['á','é','í','ó','ú','Á','É','Í','Ó','Ú'],
-            ['a','e','i','o','u','A','E','I','O','U'],
-            $cat
-        );
+    // HISTORIAL DE PEDIDOS
+    Route::get('/mis-pedidos', [PedidoController::class, 'misPedidos']);
+});
 
-        $query->whereRaw("
-            REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(LOWER(categoria),
-            'á','a'),'é','e'),'í','i'),'ó','o'),'ú','u') LIKE ?
-        ", ["%". strtolower($catNormalized) ."%"]);
-    }
+// =========================
+// PRODUCTOS (Públicas)
+// =========================
+Route::prefix('productos')->name('productos.')->group(function () {
 
-    $productos = $query->get();
+    // Más vendidos
+    Route::get('mas-vendidos', [ProductoController::class, 'masVendidos'])->name('mas-vendidos');
 
-    return response()->json($productos);
+    // Búsqueda avanzada
+    Route::get('buscar', function (Request $request) {
+        $q   = $request->input('q');
+        $cat = $request->input('cat');
+
+        $query = \App\Models\Producto::query();
+
+        if ($q) {
+            $query->where(function ($sub) use ($q) {
+                $sub->where('nombre', 'LIKE', "%{$q}%")
+                    ->orWhere('referencia', 'LIKE', "%{$q}%")
+                    ->orWhere('categoria', 'LIKE', "%{$q}%");
+            });
+        }
+
+        if ($cat) {
+            $catNormalized = str_replace(
+                ['á', 'é', 'í', 'ó', 'ú', 'Á', 'É', 'Í', 'Ó', 'Ú', 'ñ', 'Ñ'],
+                ['a', 'e', 'i', 'o', 'u', 'A', 'E', 'I', 'O', 'U', 'n', 'N'],
+                $cat
+            );
+
+            $query->whereRaw(
+                "REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(LOWER(categoria),
+                'á','a'),'é','e'),'í','i'),'ó','o'),'ú','u'),'ñ','n') LIKE ?",
+                ["%" . strtolower($catNormalized) . "%"]
+            );
+        }
+
+        return response()->json($query->get());
+    })->name('buscar');
 });

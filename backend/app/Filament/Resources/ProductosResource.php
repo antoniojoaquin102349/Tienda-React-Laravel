@@ -30,7 +30,13 @@ class ProductosResource extends Resource
             TextInput::make('stock')->numeric()->default(0)->required(),
             TextInput::make('vendido')->numeric()->default(0)->label('Vendidos'),
             RichEditor::make('descripcion')->columnSpanFull(),
-            FileUpload::make('imagen')->image()->directory('productos')->columnSpanFull(),
+            FileUpload::make('imagen')
+                ->image()
+                ->disk('public')               // <-- ESTO hace que vaya a storage/app/public
+                ->visibility('public')         // <-- Asegura acceso público
+                ->directory('productos')       // <-- Subcarpeta
+                ->columnSpanFull(),
+
         ]);
     }
 
@@ -46,7 +52,6 @@ class ProductosResource extends Resource
                 Tables\Columns\TextColumn::make('vendido')->label('Vendidos')->sortable(),
             ])
             ->actions([
-                \Filament\Actions\ViewAction::make(),
                 \Filament\Actions\EditAction::make(),
                 \Filament\Actions\DeleteAction::make(),
             ])

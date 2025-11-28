@@ -5,6 +5,8 @@ import Register from "../pages/Register";
 import AcercaDe from "../pages/AcercaDe";
 import ListaProductos from "../pages/ListaProductos";
 import AuthGoogleCallback from "../pages/auth/AuthGoogleCallback";
+import HistorialPedidos from "../pages/HistorialPedidos";
+import Checkout from "../pages/Checkout";
 
 type TypeRoute = {
     path: string;
@@ -41,7 +43,13 @@ export const routes: TypeRoute[] = [
     {
         path: "/productos",
         element: ListaProductos 
+    },
+    {
+        path: "/historialPedidos", 
+        element: HistorialPedidos 
+    },
+    {
+        path: "/checkout", 
+        element: Checkout
     }
-    
-    
 ];  

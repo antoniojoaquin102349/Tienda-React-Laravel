@@ -23,10 +23,7 @@ class ProductoController extends Controller
             });
         }
 
-        // Si en el futuro añades categorías más adelante, descomenta esto
-        // if ($cat) {
-        //     $query->where('categoria_id', $cat);
-        // }
+
 
         $productos = $query->get([
             'id', 'nombre', 'referencia', 'precio', 'imagen', 'descripcion'
@@ -40,17 +37,7 @@ class ProductoController extends Controller
     {
         $limit = $request->integer('limit', 4);
 
-        // Opción más realista cuando tengas pedidos existan (si tienes tabla pedidos y detalles_pedidos)
-        // $productos = Producto::withCount('detallesPedidos as veces_vendido')
-        //     ->orderByDesc('veces_vendido')
-        //     ->limit($limit)
-        //     ->get(['id', 'nombre', 'referencia', 'precio', 'imagen']);
-
-        // MIENTRAS NO TENGAS VENTAS REALES → usamos un truco limpio:
-        // Ordenamos por ID descendente (los últimos añadidos suelen ser los más populares al principio)
-        // O si prefieres aleatorio para que cambie cada vez: ->inRandomOrder()
-
-        $productos = Producto::select('id', 'nombre', 'referencia', 'precio', 'imagen')
+        $productos = Producto::select('id', 'nombre', 'referencia', 'precio', 'imagen', 'stock', 'descripcion')
             ->latest()           // los más nuevos primero
             // ->inRandomOrder() // o esto para que sea "aleatorio" y parezca más vivo
             ->limit($limit)

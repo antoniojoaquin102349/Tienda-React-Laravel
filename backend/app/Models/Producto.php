@@ -27,7 +27,7 @@ class Producto extends Model
                 $producto->referencia = 'REF-' . strtoupper(uniqid());
 
                 // Opción B: o lanzar error claro
-                // throw new \Exception('El campo referencia es obligatorio');
+                throw new \Exception('El campo referencia es obligatorio');
             }
         });
     }

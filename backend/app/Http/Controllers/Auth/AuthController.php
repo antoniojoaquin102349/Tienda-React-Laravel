@@ -14,79 +14,116 @@ use Illuminate\Http\Request;
 use App\Models\User;
 use Exception;
 
-
-
-
 class AuthController extends Controller
 {
-    public function register(RegisterRequest $request){
-
-        // Crear usuario
+    // ===========================
+    // REGISTER NORMAL
+    // ===========================
+    public function register(RegisterRequest $request)
+    {
         $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
+            'name'     => $request->name,
+            'email'    => $request->email,
             'password' => bcrypt($request->password),
-           
         ]);
 
         $token = JWTAuth::fromUser($user);
-        return response()->json(compact('user','token'),201);
-    }  
 
-    // Login con email/password
-    public function login(LoginRequest $request){
-        $credentials = $request->only('email','password');
+        return response()->json(compact('user', 'token'), 201);
+    }
+
+    // ===========================
+    // LOGIN NORMAL
+    // ===========================
+    public function login(LoginRequest $request)
+    {
+        $credentials = $request->only('email', 'password');
 
         if (!$token = JWTAuth::attempt($credentials)) {
-            return response()->json(['error' => 'Credenciales erroneas'],401);
+            return response()->json(['error' => 'Credenciales incorrectas'], 401);
         }
 
         $user = auth('api')->user();
+
         return response()->json(compact('user', 'token'), 200);
     }
 
-    // 1. Redirigir a Google
+    // ===========================
+    // LOGIN CON GOOGLE (REDIRECT)
+    // ===========================
     public function redirectToGoogle()
     {
         return Socialite::driver('google')
-            ->stateless()  // obligatorio con JWT
+            ->stateless()
             ->redirect();
     }
 
-    // 2. Callback de Google → devuelve JWT al frontend
+    // ===========================
+    // GOOGLE CALLBACK
+    // ===========================
     public function handleGoogleCallback()
     {
         try {
-            // Obtenemos los datos del usuario de Google
+            // Datos reales que llegan de Google
             $googleUser = Socialite::driver('google')->stateless()->user();
 
-            // Buscamos o creamos el usuario en nuestra base de datos
+            $googleEmail = $googleUser->getEmail();
+            $googleName  = $googleUser->getName();
+            $googleId    = $googleUser->getId();
+
+            // Crear o actualizar usuario SIN tocar contraseña normal
             $user = User::updateOrCreate(
-                ['email' => $googleUser->email],
+                ['email' => $googleEmail],
                 [
-                    'name' => $googleUser->name ?? 'Usuario Google',
-                    'google_id' => $googleUser->id,
+                    'name'              => $googleName,
+                    'google_id'         => $googleId,
                     'email_verified_at' => now(),
-                    'password' => bcrypt(str()->random(16)), // contraseña aleatoria (nunca se usa)
+                    'password'          => Hash::make(Str::random(32)), // random para no permitir login por password
                 ]
             );
 
-            // Generar el mismo JWT que usas en login normal
+            // Generar JWT
             $token = JWTAuth::fromUser($user);
 
-            // Redirigir al frontend con el token en la URL (método simple y seguro con JWT)
             $frontendUrl = env('FRONTEND_URL', 'http://localhost:5173');
+
             return redirect("{$frontendUrl}/login?token={$token}");
-            
 
         } catch (Exception $e) {
             \Log::error('Google OAuth Error: ' . $e->getMessage());
+
             $frontendUrl = env('FRONTEND_URL', 'http://localhost:5173');
             return redirect("{$frontendUrl}/login?error=google_failed");
         }
     }
 
-    // Opcional: Logout
+    // ===========================
+    // PERFIL / VALIDAR TOKEN
+    // ===========================
+    public function me(Request $request)
+{
+    try {
+        $user = JWTAuth::parseToken()->authenticate();
+
+        if (!$user) {
+            return response()->json(['status' => 'User not found'], 404);
+        }
+
+        return response()->json(['user' => $user], 200);
+
+    } catch (\Tymon\JWTAuth\Exceptions\TokenExpiredException $e) {
+        return response()->json(['status' => 'Token expired'], 401);
+    } catch (\Tymon\JWTAuth\Exceptions\TokenInvalidException $e) {
+        return response()->json(['status' => 'Token invalid'], 401);
+    } catch (\Tymon\JWTAuth\Exceptions\JWTException $e) {
+        return response()->json(['status' => 'Token not provided'], 401);
+    }
+}
+
+
+    // ===========================
+    // LOGOUT
+    // ===========================
     public function logout()
     {
         auth('api')->logout();

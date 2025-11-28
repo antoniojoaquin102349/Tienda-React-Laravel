@@ -33,22 +33,22 @@ class Kernel extends HttpKernel
         ],
 
         'api' => [
-            \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
-            \Illuminate\Routing\Middleware\ThrottleRequests::class. ':api',
+            // Quitamos Sanctum del grupo 'api' porque ahora usamos JWT puro
+            // \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
+
+            'throttle:api',
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
         ],
     ];
 
-
     /**
-     * The application's middleware aliases.
+     * The application's route middleware.
      *
-     * Aliases allow you to use a short name for middleware in routes.
+     * These middleware may be assigned to groups or used individually.
      */
-    protected $middlewareAliases = [
+    protected $routeMiddleware = [
         'auth' => \App\Http\Middleware\Authenticate::class,
         'auth.basic' => \Illuminate\Auth\Middleware\AuthenticateWithBasicAuth::class,
-        'auth.session' => \Illuminate\Session\Middleware\AuthenticateSession::class,
         'cache.headers' => \Illuminate\Http\Middleware\SetCacheHeaders::class,
         'can' => \Illuminate\Auth\Middleware\Authorize::class,
         'guest' => \App\Http\Middleware\RedirectIfAuthenticated::class,
@@ -57,7 +57,15 @@ class Kernel extends HttpKernel
         'signed' => \Illuminate\Routing\Middleware\ValidateSignature::class,
         'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
-        'jwt.verify' => \App\Http\Middleware\JwtMiddleware::class,
+
+        // =================== JWT MIDDLEWARES (CORREGIDOS) ===================
+        // Opción recomendada y oficial en tymon/jwt-auth ^2.0
+        'jwt.auth' => \Tymon\JWTAuth\Http\Middleware\Authenticate::class,
+
+        // Si quieres seguir usando el nombre antiguo "jwt.verify" (para no tocar rutas)
+        'jwt.verify' => \Tymon\JWTAuth\Http\Middleware\Authenticate::class,
+
+        // Middleware para refrescar token expirado (opcional pero muy útil)
+        'jwt.refresh' => \Tymon\JWTAuth\Http\Middleware\RefreshToken::class,
     ];
 }
-

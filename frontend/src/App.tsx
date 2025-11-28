@@ -1,11 +1,37 @@
-// src/App.tsx → vuelve a dejarlo así (sin SessionTimeoutWrapper)
+// src/App.tsx
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { PersistGate } from "redux-persist/integration/react";
-import { Provider } from "react-redux";
+import { Provider, useDispatch } from "react-redux";
 import { routes } from "./routes/route";
-import { createElement } from "react";
+import { createElement, useEffect } from "react";
 import { persistor, store } from "./store";
 import ProtectedRoute from "./pages/ProtectedRoute";
+import { checkAuth, logoutUser } from "./store/authSlice"; // ← AÑADE ESTO
+
+// Componente que se ejecuta cuando Redux ya está rehidratado
+const AuthInitializer = () => {
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+
+    if (token) {
+      // Intentamos validar el token con el backend
+      dispatch(checkAuth() as any)
+        .unwrap()
+        .catch(() => {
+          // Token inválido o expirado → limpiamos todo
+          localStorage.removeItem("token");
+          dispatch(logoutUser());
+        });
+    } else {
+      // No hay token → aseguramos estado limpio
+      dispatch(logoutUser());
+    }
+  }, [dispatch]);
+
+  return null; // Este componente no renderiza nada
+};
 
 function App() {
   const router = createBrowserRouter(
@@ -29,7 +55,13 @@ function App() {
 
   return (
     <Provider store={store}>
-      <PersistGate persistor={persistor}>
+      <PersistGate
+        loading={null} // puedes poner un spinner aquí si quieres
+        persistor={persistor}
+      >
+        {/* Este componente se monta SOLO cuando el store está rehidratado */}
+        <AuthInitializer />
+        
         <RouterProvider router={router} />
       </PersistGate>
     </Provider>
@@ -37,4 +69,3 @@ function App() {
 }
 
 export default App;
-

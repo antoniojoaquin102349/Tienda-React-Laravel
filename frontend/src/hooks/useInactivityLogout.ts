@@ -33,7 +33,7 @@ export const useInactivityLogout = (inactiveMinutes = 60) => {
       const lastActivity = Number(localStorage.getItem("lastActivity"));
       if (Date.now() - lastActivity > inactiveMs) {
         dispatch(logoutUser());
-        navigate("/login", { replace: true });
+        navigate("/", { replace: true });
         alert("Sesión cerrada por inactividad");
       }
     }, 5000); // verifica cada 5 segundos
