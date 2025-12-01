@@ -8,7 +8,7 @@ import { store } from "../store";
 
 const Checkout = () => {
   const [carrito, setCarrito] = useState<any[]>([]);
-  const [mensaje, setMensaje] = useState("");
+  const [, setMensaje] = useState("");
   const [loading, setLoading] = useState(false);
   const [exito, setExito] = useState(false);
   const [_guardadoPrevio, setGuardadoPrevio] = useState(false);
@@ -91,66 +91,77 @@ const Checkout = () => {
 
   const total = carrito.reduce(
     (acc: number, item: any) =>
-      acc + (parseFloat(item.precio) || 0) * (item.cantidad || 1),
-    0
+      acc + (parseFloat(item.precio) || 0) * (item.cantidad || 1), 0
   );
 
   const [mostrarLoginModal, setMostrarLoginModal] = useState(false);
-
+  const manejarLogin = () => {setMostrarLoginModal(false); navigate("/login");};
+  
+  // Función para realizar el pedido
   const realizarPedido = async () => {
-    if (!validarFormulario() || loading) return;
+
+    if (!validarFormulario() || loading) 
+      return;
+
+     console.log("Form:", form);
+    console.log("Carrito:", carrito);
 
     setLoading(true);
     setMensaje("");
 
     try {
-      // Primero verificamos si el email del formulario ya existe en el backend
+      // Verificar si el email ya existe en el backend
       const existeResp = await Api.post("/check-email", { email: form.email });
-      const existeData = (existeResp as any).data;
+      const usuarioExiste = (existeResp as any).data?.existe ?? false;
+      
+      // Agregar estos console.log para diagnosticar
+    console.log("Respuesta del servidor:", existeResp.data);
+    console.log("usuarioExiste:", usuarioExiste);
+    console.log("Token en localStorage:", localStorage.getItem("token"));
+    console.log("¿Hay token?:", !!localStorage.getItem("token"));
 
-      if (existeData?.existe) {
-        // El usuario ya está registrado pero no tiene token → mostrar modal
-        const tokenExistente = localStorage.getItem("token");
-        if (!tokenExistente) {
-          setMostrarLoginModal(true);
-          setLoading(false);
-          return;
-        }
-      }
-
-      // Si no existe, seguimos normalmente → backend creará usuario automáticamente
-      const response = await Api.post("/guardar-pedido", { cliente: form, carrito });
-      const resp = response as any;
-      const data = resp.data;
-
-      if (!data) {
-        setMensaje("Error: respuesta inválida del servidor");
-        setLoading(false);
+      // Si el usuario existe pero no tiene sesión activa, obligar login
+      if (usuarioExiste && !localStorage.getItem("token")) {
+        console.log("Entrando en la condición para mostrar el modal de login");
+        setMostrarLoginModal(true);
         return;
       }
 
-      const token = data.token ?? resp.token;
+      // Continuar con el pedido (usuario nuevo o ya logueado)
+      const response = await Api.post("/guardar-pedido", { cliente: form, carrito });
+      const data = (response as any).data;
 
+      if (!data || !data.success) {
+        throw new Error(data?.message || "Error al procesar el pedido");
+      }
+
+      // Manejo del token y credenciales
+      const token = data.token ?? (response as any).token;
       if (token) {
         localStorage.setItem("token", token);
-        const meResp = await Api.get("/me");
-        const me = (meResp as any).data;
-        if (me?.user) {
-          localStorage.setItem("user", JSON.stringify(me.user));
-          store.dispatch(setCredentials({ token, user: me.user }));
+        try {
+          const meResp = await Api.get("/me");
+          const me = (meResp as any).data;
+          if (me?.user) {
+            localStorage.setItem("user", JSON.stringify(me.user));
+            store.dispatch(setCredentials({ token, user: me.user }));
+          }
+        } catch {
+          console.warn("No se pudo obtener información del usuario");
         }
       }
 
+      // Limpiar carrito y redirigir
       localStorage.removeItem("carrito");
       setCarrito([]);
       setExito(true);
       setTimeout(() => navigate("/", { replace: true }), 2000);
 
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      setMensaje("Error al procesar el pedido");
+      setMensaje(error.message || "Error al procesar el pedido");
     } finally {
-      setLoading(false);
+        setLoading(false);
     }
   };
 
@@ -172,13 +183,7 @@ const Checkout = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 p-6 relative">
-
-      {mensaje && (
-        <div className="fixed top-6 left-1/2 -translate-x-1/2 bg-red-600 text-white px-8 py-4 rounded-xl text-lg font-semibold shadow-lg z-50 animate-pulse">
-          {mensaje}
-        </div>
-      )}
-
+      
       <div className="max-w-4xl mx-auto bg-white p-8 rounded-2xl shadow-xl">
 
         <h1 className="text-4xl font-bold mb-8 text-center">Finalizar Compra</h1>
@@ -314,23 +319,22 @@ const Checkout = () => {
           >
             {loading ? "Procesando..." : "Realizar Pedido"}
           </button>
-
+          {/* ----------------- MODAL ----------------- */}
+          <MensajeModal
+            isOpen={mostrarLoginModal}
+            onClose={() => setMostrarLoginModal(false)}
+            titulo="Debes iniciar sesión"
+            mensaje="Para continuar con el pedido, debes iniciar sesión con esta cuenta."
+            mostrarBotones={true}
+            mostrarCerrar={true}
+            textoBotonPrimario="Ir al login"
+            textoBotonSecundario="Cancelar"
+            accionBotonSecundario="redirigir"
+            urlRedirigir="/"
+            onConfirmar={manejarLogin}             
+          />
           <Link to="/cesta" className="block mt-4 text-gray-500 hover:underline">← Volver al carrito</Link>
         </div>
-        
-        {/* ----------------- MODAL ----------------- */}
-        <MensajeModal
-          isOpen={mostrarLoginModal}
-          onClose={() => {
-            setMostrarLoginModal(false);
-            navigate("/login");
-          }}
-        titulo="Debes iniciar sesión"
-        mensaje="Para realizar un pedido debes iniciar sesión."
-        autoCerrarMs={1800}
-        mostrarCerrar={false}
-        /> 
-
       </div>
     </div>
   );

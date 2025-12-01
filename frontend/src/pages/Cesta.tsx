@@ -205,7 +205,6 @@ const Cesta = () => {
             textoBotonPrimario="Vaciar"
             textoBotonSecundario="Cancelar"
             onConfirmar={confirmarVaciado}
-            autoCerrarMs={2500}
           />
       </div>
 

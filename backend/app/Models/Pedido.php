@@ -2,23 +2,31 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Pedido extends Model
 {
-    protected $fillable = ['user_id', 'total', 'estado'];
+    use HasFactory;
 
-    protected $casts = [
-        'total' => 'float', 
+    protected $fillable = [
+        'user_id',
+        'nombre',
+        'email',
+        'telefono',
+        'direccion',
+        'ciudad',
+        'cp',
+        'envio',
+        'pago',
+        'notas',
+        'total',
+        'estado',
     ];
 
     public function productos()
     {
         return $this->hasMany(PedidoProducto::class);
     }
-
-    public function user()
-    {
-        return $this->belongsTo(User::class);
-    }
 }
+

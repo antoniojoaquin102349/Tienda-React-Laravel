@@ -10,12 +10,14 @@ return new class extends Migration
     {
         Schema::create('productos', function (Blueprint $table) {
             $table->id();
-            $table->string('referencia')->unique()->nullable(false);   // ej: CAM001
+            $table->string('referencia')->unique()->nullable(false);
             $table->string('nombre');
+            $table->string('categoria')->nullable();  // <-- unificada
             $table->decimal('precio', 10, 2);
             $table->integer('stock')->default(0);
+            $table->boolean('vendido')->default(false);  // <-- unificada
             $table->text('descripcion')->nullable();
-            $table->string('imagen')->nullable();     // ruta de la imagen
+            $table->string('imagen')->nullable();
             $table->timestamps();
         });
     }

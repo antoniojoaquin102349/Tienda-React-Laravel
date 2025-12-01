@@ -30,6 +30,7 @@ Route::prefix('auth')->name('auth.')->group(function () {
 // =========================
 // Ruta unificada para usuarios logueados e invitados
 Route::post('/guardar-pedido', [PedidoController::class, 'store']);
+Route::post('/check-email', [PedidoController::class, 'checkEmail']);
 
 // =========================
 // RUTAS PROTEGIDAS CON JWT

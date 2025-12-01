@@ -1,5 +1,4 @@
 // src/components/Productos.tsx
-// src/components/Product
 import { useEffect, useState } from "react";
 
 export interface Producto {

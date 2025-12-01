@@ -38,8 +38,7 @@ class ProductoController extends Controller
         $limit = $request->integer('limit', 4);
 
         $productos = Producto::select('id', 'nombre', 'referencia', 'precio', 'imagen', 'stock', 'descripcion')
-            ->latest()           // los más nuevos primero
-            // ->inRandomOrder() // o esto para que sea "aleatorio" y parezca más vivo
+            ->orderBy('vendido', 'desc') // los más vendidos primero
             ->limit($limit)
             ->get();
 

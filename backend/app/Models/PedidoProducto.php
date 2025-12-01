@@ -2,22 +2,25 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class PedidoProducto extends Model
 {
-    protected $table = 'pedido_productos';
-    protected $fillable = ['pedido_id', 'producto_id', 'nombre', 'precio', 'cantidad', 'imagen'];
+    use HasFactory;
 
-    // Relación con el pedido
+    protected $fillable = [
+        'pedido_id',
+        'producto_id',
+        'nombre',
+        'referencia',
+        'imagen',
+        'precio',
+        'cantidad',
+    ];
+
     public function pedido()
     {
         return $this->belongsTo(Pedido::class);
-    }
-
-    // Relación con el producto original - ESTA ES LA RELACIÓN QUE FALTABA
-    public function producto()
-    {
-        return $this->belongsTo(Producto::class);
     }
 }

@@ -19,7 +19,18 @@ class PedidoController extends Controller
     {
         return bin2hex(random_bytes(4));
     }
+    public function checkEmail(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email'
+        ]);
 
+        $existe = User::where('email', $request->email)->exists();
+
+        return response()->json([
+            'existe' => $existe
+        ]);
+    }
     public function store(Request $request)
     {
         $carrito = $request->carrito;
@@ -37,21 +48,35 @@ class PedidoController extends Controller
 
         // SI NO HAY TOKEN → es invitado
         if (!$user) {
-            $password = $this->generarPassword();
-            $user = User::firstOrCreate(
-                ['email' => $datos['email']],
-                [
-                    'name' => $datos['nombre'],
-                    'password' => bcrypt($password),
-                    'telefono' => $datos['telefono'] ?? null,
-                    'direccion' => $datos['direccion'],
-                    'ciudad' => $datos['ciudad'],
-                    'cp' => $datos['cp'],
-                ]
-            );
+            // Verificar si el email ya está registrado
+            $userExistente = User::where('email', $datos['email'])->first();
 
-            if ($user->wasRecentlyCreated) {
+            if ($userExistente) {
+                // Usuario ya registrado pero no autenticado → bloquear
+                return response()->json([
+                    "success" => false,
+                    "message" => "Para continuar con el pedido, debes iniciar sesión con esta cuenta.",
+                    "requiere_login" => true
+                ], 401);
+            }
+
+            // Usuario no existe → crear nuevo
+            $password = $this->generarPassword();
+            $user = User::create([
+                'name' => $datos['nombre'],
+                'email' => $datos['email'],
+                'password' => bcrypt($password),
+                'telefono' => $datos['telefono'] ?? null,
+                'direccion' => $datos['direccion'],
+                'ciudad' => $datos['ciudad'],
+                'cp' => $datos['cp'],
+            ]);
+
+            // ✅ Aquí va el bloque para enviar el correo
+            try {
                 Mail::to($user->email)->send(new UsuarioCreadoMail($user, $password));
+            } catch (\Exception $e) {
+                \Log::error("Error enviando correo de registro automático: " . $e->getMessage());
             }
         }
 
@@ -79,6 +104,15 @@ class PedidoController extends Controller
                 'metodo_pago_guardado' => $datos['guardarPago'] ?? false,
             ]);
         }
+        // Si ya existe un registro y el usuario marca explícitamente el checkbox para guardar los datos de pago
+        else if (isset($datos['guardarPago']) && $datos['guardarPago']) {
+            Datos::where('user_id', $user->id)->update([
+                'numero_tarjeta' => '**** **** **** ' . substr($datos['numeroTarjeta'], -4),
+                'nombre_tarjeta' => $datos['nombreTarjeta'],
+                'fecha_vencimiento' => $datos['vencimiento'],
+                'metodo_pago_guardado' => true,
+            ]);
+        }
 
         // Generar/Refrescar token JWT siempre
         $token = JWTAuth::fromUser($user);
@@ -89,15 +123,6 @@ class PedidoController extends Controller
         // Crear pedido
         $pedido = Pedido::create([
             'user_id' => $user->id,
-            'nombre' => $datos['nombre'],
-            'email' => $datos['email'],
-            'telefono' => $datos['telefono'] ?? null,
-            'direccion' => $datos['direccion'],
-            'ciudad' => $datos['ciudad'],
-            'cp' => $datos['cp'],
-            'envio' => $datos['envio'] ?? 'standard',
-            'pago' => $datos['pago'],
-            'notas' => $datos['notas'] ?? null,
             'total' => $total,
             'estado' => 'pendiente',
         ]);
@@ -108,7 +133,6 @@ class PedidoController extends Controller
                 'pedido_id' => $pedido->id,
                 'producto_id' => $item['id'] ?? null,
                 'nombre' => $item['nombre'],
-                'referencia' => $item['referencia'] ?? '',
                 'imagen' => $item['imagen'] ?? '',
                 'precio' => $item['precio'],
                 'cantidad' => $item['cantidad'],
@@ -118,6 +142,7 @@ class PedidoController extends Controller
                 $producto = Producto::find($item['id']);
                 if ($producto) {
                     $producto->stock = max(0, $producto->stock - $item['cantidad']);
+		            $producto->vendido = $producto->vendido + $item['cantidad'];
                     $producto->save();
                 }
             }
@@ -133,20 +158,30 @@ class PedidoController extends Controller
             "token" => $token
         ], 201);
     }
-
-    public function misPedidos()
+    public function historial()
     {
-        // Obtener el usuario autenticado desde JWT
-        $user = JWTAuth::user();
-
-        if (!$user) {
-            return response()->json(['error' => 'No autenticado'], 401);
-        }
-
-        // Traer los pedidos del usuario, con sus productos relacionados
-        $pedidos = Pedido::with('productos')->where('user_id', $user->id)->get();
+        $pedidos = Auth::user()->pedidos()->with('productos')->latest()->get();
 
         return response()->json($pedidos);
     }
+    public function misPedidos()
+    {
+        $user = JWTAuth::user();
 
-}
+        if (!$user) {
+            return response()->json([
+                "success" => false,
+                "message" => "Para continuar, debes iniciar sesión.",
+                "requiere_login" => true
+            ], 401);
+        }
+
+        $pedidos = Pedido::with('productos')->where('user_id', $user->id)->get();
+
+        return response()->json([
+            "success" => true,
+            "pedidos" => $pedidos
+        ]);
+        }
+    }  
+      

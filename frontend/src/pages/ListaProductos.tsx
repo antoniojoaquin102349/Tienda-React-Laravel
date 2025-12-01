@@ -34,7 +34,6 @@ const ListaProductos = () => {
         endpoint={url}
         mostrarBadge={false}
         columnas="3"
-        // No necesitas pasar onImagenClick → el componente ya lo gestiona solo
       />
     </div>
   );

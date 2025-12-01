@@ -4,6 +4,7 @@ import axios from "axios";
 
 interface Producto {
   nombre: string;
+  referencia?: string;
   precio: number;
   cantidad: number;
   imagen?: string;
@@ -46,7 +47,8 @@ const HistorialPedidos = () => {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then((res) => {
-        const pedidosConTotalNumero = res.data.map((p: Pedido) => ({
+        const pedidosRaw = res.data.pedidos || [];
+        const pedidosConTotalNumero = pedidosRaw.map((p: Pedido) => ({
           ...p,
           total: Number(p.total) || 0,
           productos: p.productos.map((prod) => ({
@@ -116,7 +118,7 @@ const HistorialPedidos = () => {
           <div className="space-y-10">
             {pedidos.map((pedido) => (
               <div key={pedido.id} className="bg-white rounded-2xl shadow-xl overflow-hidden">
-                <div className="_bg-gradient-to-r from-green-600 to-green-700 text-white p-6">
+                <div className="bg-gradient-to-r from-green-600 to-green-700 text-white p-6">
                   <div className="flex justify-between items-center">
                     <h2 className="text-2xl font-bold">Pedido #{pedido.id}</h2>
                     <div className="text-right">
@@ -134,34 +136,50 @@ const HistorialPedidos = () => {
                 </div>
 
                 <div className="p-8">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  <div className="space-y-6">
                     {pedido.productos.map((prod, i) => (
                       <div
                         key={i}
-                        className="flex items-center gap-4 bg-gray-50 p-5 rounded-xl hover:bg-gray-100 transition"
+                        className="flex flex-col lg:flex-row gap-6 bg-white border border-gray-200 rounded-xl p-6 hover:shadow-md transition-all"
                       >
-                        <div className="w-28 h-28 _flex-shrink-0 relative">
+                        <div className="w-full lg:w-48 flex-shrink-0">
                           {prod.imagen && prod.imagen.toString().trim() !== "" ? (
                             <img
                               src={`${BASE_URL}/storage/${prod.imagen}`}
                               alt={prod.nombre}
-                              className="w-full h-full object-contain p-2 rounded-lg"
+                              className="w-full h-56 object-contain p-4 rounded-lg bg-gray-50"
                               onError={(e) => {
                                 console.error(`Error cargando imagen "${prod.imagen}"`);
                                 e.currentTarget.src = "/img/no-image.jpg";
                               }}
                             />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-gray-200 rounded-lg">
-                              <span className="text-gray-500 text-xs text-center">Sin imagen</span>
+                            <div className="w-full h-56 flex items-center justify-center bg-gray-200 rounded-lg">
+                              <span className="text-gray-500 text-sm text-center">Sin imagen</span>
                             </div>
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-gray-800 line-clamp-2">{prod.nombre}</p>
-                          <p className="text-sm text-gray-600 mt-1">
-                            Cantidad: {prod.cantidad} × {prod.precio.toFixed(2)} €
-                          </p>
+                          <h3 className="text-xl font-bold text-gray-800 mb-3 line-clamp-2">{prod.nombre}</h3>
+                          {prod.referencia && (
+                            <p className="text-sm text-gray-500 mb-4">Ref: {prod.referencia}</p>
+                          )}
+                          <div className="flex items-center justify-between sm:justify-start sm:gap-8">
+                            <div className="text-lg">
+                              <p className="text-sm text-gray-600">Cantidad</p>
+                              <p className="font-semibold text-gray-900">{prod.cantidad}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-sm text-gray-600">Precio unitario</p>
+                              <p className="text-2xl font-bold text-green-600">{prod.precio.toFixed(2)} €</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-sm text-gray-600">Subtotal</p>
+                              <p className="text-xl font-bold text-gray-900">
+                                {(prod.cantidad * prod.precio).toFixed(2)} €
+                              </p>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     ))}
