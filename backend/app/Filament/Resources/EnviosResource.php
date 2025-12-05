@@ -44,12 +44,6 @@ class EnviosResource extends Resource
                     
             TextInput::make('numero_seguimiento')
                 ->label('nº seguimiento'),
-                   
-            TextInput::make('enviado_at')
-                ->label('Enviado'),        
-            
-            TextInput::make('entregado_at')
-                ->label('Entregado'),
                      
         ]);
     }

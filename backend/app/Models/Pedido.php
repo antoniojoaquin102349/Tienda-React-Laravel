@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Producto;
+use Carbon\Carbon;
 
 class Pedido extends Model
 {
@@ -37,6 +39,16 @@ class Pedido extends Model
     public function pedidoProductos()
     {
         return $this->hasMany(PedidoProducto::class);
+    }
+    public function productos()
+    {
+        return $this->belongsToMany(Producto::class, 'pedido_productos')
+                    ->withPivot(['cantidad', 'precio'])
+                    ->withTimestamps();
+    }
+     public function envios()
+    {
+        return $this->belongsTo(Envio::class);
     }
 }
 

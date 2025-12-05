@@ -55,11 +55,11 @@ class EnviosTable
 
                 Tables\Columns\BadgeColumn::make('estado')
                     ->colors([
-                        'warning' => 'pendiente',
-                        'inf'     => 'enviado',
-                        'primary' => 'en_transito',
-                        'success' => 'entregao',
-                        'danger'  => 'devuelto',
+                        'warning' => 'Pendiente',
+                        'inf'     => 'Enviado',
+                        'primary' => 'En transito',
+                        'success' => 'Entregao',
+                        'danger'  => 'Devuelto',
                     ])
                     ->searchable()
                     ->sortable(),

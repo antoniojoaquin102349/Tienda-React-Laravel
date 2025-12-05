@@ -3,15 +3,16 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Pedido;
+use Illuminate\Support\Facades\Mail;
+use Tymon\JWTAuth\Facades\JWTAuth;
+use App\Mail\UsuarioCreadoMail;
 use App\Models\PedidoProducto;
+use Illuminate\Http\Request;
+use App\Models\Producto;
+use App\Models\Pedido;
+use App\Models\Envio;
 use App\Models\Datos; // Cambiar el nombre del modelo para que coincida con la tabla "datos"
 use App\Models\User;
-use App\Models\Producto;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Mail;
-use App\Mail\UsuarioCreadoMail;
-use Tymon\JWTAuth\Facades\JWTAuth;
 
 class PedidoController extends Controller
 {
@@ -146,6 +147,35 @@ class PedidoController extends Controller
             }
         }
 
+        // Obtener los datos del cliente desde la tabla datos
+        $datos = Datos::where('user_id', $user->id)->first();
+
+        if (!$datos) {
+            // Si no existen datos, evitamos romper el servidor
+            return response()->json([
+                'error' => 'No se encontraron los datos del usuario.'
+            ], 400);
+        }
+
+        // Crear un registro de envío para cada pedido
+        $primerProducto = $carrito[0]; // Tomamos un producto representativo para referencia
+        Envio::create([
+            'pedido_id' => $pedido->id,
+            'nombre_cliente' => $user->name,
+            'telefono' => $datos->telefono,
+            'direccion' => $datos->direccion,
+            'ciudad' => $datos->ciudad,
+            'codigo_postal' => $datos->codigo_postal,
+            'referencia' => $primerProducto['referencia'] ?? 'N/A', // Puedes usar la referencia real del producto
+            'nombre_producto' => $primerProducto['nombre'],
+            'cantidad' => $primerProducto['cantidad'],
+            'precio_unitario' => $primerProducto['precio'],
+            'estado' => 'pendiente',
+            'metodo_envio' => 'standard', // o puedes recibirlo desde el request
+            'transportista' => null,
+            'numero_seguimiento' => null,
+        ]);
+
         return response()->json([
             "success" => true,
             "message" => $user->wasRecentlyCreated
@@ -155,6 +185,7 @@ class PedidoController extends Controller
             "es_primera_compra" => !$existeRegistroPrimeraCompra,
             "token" => $token
         ], 201);
+        
     }
     public function historial()
     {
