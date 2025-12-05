@@ -94,3 +94,11 @@ export interface ApiResponse<T> {
   data: T | null;
   error?: string;
 }
+
+export const authHeaders = () => {
+  const token = localStorage.getItem("token");
+  return {
+    "Content-Type": "application/json",
+    Authorization: token ? `Bearer ${token}` : "",
+  };
+};

@@ -19,7 +19,6 @@ return new class extends Migration
             $table->string('nombre_tarjeta')->nullable();
             $table->string('numero_seguridad')->nullable();
             $table->string('fecha_vencimiento', 5)->nullable();
-            $table->boolean('metodo_pago_guardado')->default(false);
             
             $table->timestamps();
 

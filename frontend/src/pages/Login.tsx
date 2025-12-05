@@ -1,14 +1,19 @@
-import * as Yup from "yup";
-import { Formik } from "formik";
+import { syncCarritoConServidor, loadCarritoDesdeServidor } from "../slices/carritoSlice";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
+import { loginUser, setCredentials } from "../slices/authSlice";
 import InputLabel from "../components/input/InputLabel";
 import Button from "../components/button/Button";
 import { useAppDispatch } from "../store";
-import { loginUser, setCredentials } from "../store/authSlice";
-import { useNavigate, useSearchParams } from "react-router-dom";
 import { useSelector } from "react-redux";
+import Header from "../components/Header";
+import Footer from "../components/Footer";
 import type { RootState } from "../store";
+import type { Producto } from "../types";
 import { useEffect } from "react";
+import { Formik } from "formik";
 import Swal from "sweetalert2";
+import * as Yup from "yup";
+
 
 const Login = () => {
   const dispatch = useAppDispatch();
@@ -18,32 +23,29 @@ const Login = () => {
 
   // 1. Detectar token o error del callback de Google
   useEffect(() => {
-    const token = searchParams.get("token");
-    const error = searchParams.get("error");
+    const handleGoogleLogin = async () => {
+      const token = searchParams.get("token");
+      if (token) {
+        localStorage.setItem("token", token);
+        dispatch(setCredentials({ token }));
 
-    if (token) {
-      // Guardar token en localStorage
-      localStorage.setItem("token", token);
+        const localCart: Producto[] = JSON.parse(localStorage.getItem("cart") || "[]");
+        if (localCart.length > 0) {
+          await syncCarritoConServidor(localCart);
+        }
 
-      // Actualizar estado global de Redux
-      dispatch(setCredentials({ token }));
+        await loadCarritoDesdeServidor((cart) => {
+          dispatch({ type: "carrito/setCarrito", payload: cart });
+        });
 
-      // Limpiar URL y redirigir
-      navigate("/", { replace: true });
-    }
+        localStorage.removeItem("cart");
 
-    if (error) {
-      Swal.fire({
-        icon: "error",
-        title: "Error con Google",
-        text: "No se pudo iniciar sesión con Google. Inténtalo de nuevo.",
-        timer: 4000,
-        timerProgressBar: true,
-      });
-      // Limpiar el parámetro error de la URL
-      navigate("/login", { replace: true });
-    }
+        navigate("/", { replace: true });
+      }
+    };
+    handleGoogleLogin();
   }, [searchParams, dispatch, navigate]);
+
 
   // 2. Redirección automática si ya está logueado (login normal o Google)
   useEffect(() => {
@@ -68,9 +70,28 @@ const Login = () => {
   });
 
   const onSubmit = async (values: typeof initialValues) => {
-    dispatch(loginUser(values)).then((response) => {
+    try {
+      // Esperar el login
+      const response = await dispatch(loginUser(values));
+
       if (response.type === "auth/loginUser/fulfilled") {
-        navigate("/");
+        // 1️⃣ Revisar carrito de invitado
+        const localCart: Producto[] = JSON.parse(localStorage.getItem("cart") || "[]");
+
+        if (localCart.length > 0) {
+          await syncCarritoConServidor(localCart); // enviar carrito al servidor
+        }
+
+        // 2️⃣ Cargar carrito definitivo del servidor
+        await loadCarritoDesdeServidor((cart) => {
+          dispatch({ type: "carrito/setCarrito", payload: cart });
+        });
+
+        // 3️⃣ Limpiar carrito de invitado
+        localStorage.removeItem("cart");
+
+        // 4️⃣ Redirigir
+        navigate("/", { replace: true });
       } else {
         Swal.fire({
           position: "top-end",
@@ -80,11 +101,20 @@ const Login = () => {
           timer: 2000,
         });
       }
-    });
+    } catch (err) {
+      console.error(err);
+    }
   };
+
 
   return (
     <section className="bg-gray-50 dark:bg-gray-900 min-h-screen">
+      
+      {/* HEADER fijo */}
+      <div className="fixed top-0 left-0 w-full z-50">
+        <Header />
+      </div>
+      
       <div className="flex flex-col items-center justify-center px-6 py-8 mx-auto md:h-screen lg:py-0">
         <div className="w-full max-w-md bg-white rounded-lg shadow-lg dark:bg-gray-800">
           <div className="p-6 space-y-6 sm:p-8">
@@ -168,6 +198,10 @@ const Login = () => {
           </div>
         </div>
       </div>
+     
+      {/* FOOTER */}
+      <Footer/>
+        
     </section>
   );
 };

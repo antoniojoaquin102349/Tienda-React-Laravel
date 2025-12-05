@@ -12,7 +12,9 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->decimal('total', 10, 2);
-            $table->string('estado')->default('completado');
+            $table->enum('metodo_envio', ['standard', 'express'])
+                ->default('standard');
+            $table->string('estado')->default('pendiente');
             $table->timestamps();
         });
     }

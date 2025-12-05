@@ -1,15 +1,7 @@
 // src/components/Productos.tsx
 import { useEffect, useState } from "react";
-
-export interface Producto {
-  id: number;
-  nombre: string;
-  referencia: string;
-  precio: number | string;
-  descripcion?: string;
-  imagen?: string;
-  stock?: number; // <-- stock incluido
-}
+import { agregarProductoServidor } from "../slices/carritoSlice";
+import type {Producto, ProductosProps} from "../types";
 
 // Función reutilizable para añadir al carrito
 export const añadirAlCarrito = (producto: Producto) => {
@@ -24,15 +16,6 @@ export const añadirAlCarrito = (producto: Producto) => {
 
   localStorage.setItem("carrito", JSON.stringify(carrito));
 };
-
-interface ProductosProps {
-  titulo?: string;
-  limit?: number;
-  endpoint?: string;
-  mostrarBadge?: boolean;
-  columnas?: "1" | "2" | "3" | "4";
-  onImagenClick?: (producto: Producto | null) => void;
-}
 
 const Productos = ({
   titulo = "Productos Destacados",
@@ -82,8 +65,21 @@ const Productos = ({
     }
   };
 
-  const handleAñadir = (p: Producto) => {
+  const handleAñadir = async (p: Producto) => {
+    // 1️⃣ Actualizar localStorage
     añadirAlCarrito(p);
+    
+    //2️⃣ Enviar al backend si hay token
+    const token = localStorage.getItem("token");
+    if (token) {
+      try {
+        await agregarProductoServidor(p.id, 1); // 1 unidad
+        console.log("Producto añadido al servidor");
+      } catch (error) {
+        console.error("Error agregando producto al servidor:", error);
+      }
+    }
+    // 3️⃣ Mostrar modal de añadido
     setProductoAñadido(p);
     cerrarModal();
   };

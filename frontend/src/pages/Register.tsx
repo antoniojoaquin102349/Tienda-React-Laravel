@@ -1,11 +1,15 @@
-import { Formik, type FormikHelpers } from "formik";
-import * as Yup from "yup";
-import Button from "../components/button/Button";
 import InputLabel from "../components/input/InputLabel";
-import { registerUser } from "../store/authSlice";
-import { useAppDispatch } from "../store";
+import { setCredentials } from "../slices/authSlice";
+import { Formik, type FormikHelpers } from "formik";
+import { registerUser } from "../slices/authSlice";
+import Button from "../components/button/Button";
 import { useNavigate } from "react-router";
-import { setCredentials } from "../store/authSlice";
+import Header from "../components/Header";
+import Footer from "../components/Footer";
+import { useAppDispatch } from "../store";
+import { Link } from "react-router-dom";
+import * as Yup from "yup";
+
 const Register = () => {
     const dispath = useAppDispatch();
 
@@ -51,6 +55,12 @@ const Register = () => {
 
     return (    
         <section className="bg-gray-50 dark:bg-gray-900">
+            
+            {/* HEADER fijo */}
+            <div className="fixed top-0 left-0 w-full z-50">
+                <Header />
+            </div>
+
             <div className="flex flex-col items-center justify-center px-6 py-8 mx-auto md:h-screen lg:py-0">
                 <div className="w-full bg-white rounded-lg shadow dark:border md:mt-0 sm:max-w-md xl:p-0 dark:bg-gray-800 dark:border-gray-700">
                     <div className="p-6 space-y-4 md:space-y-6 sm:p-8">
@@ -75,7 +85,11 @@ const Register = () => {
                         </Formik>
                     </div>
                 </div>                     
-            </div>           
+            </div>   
+            
+            {/* FOOTER */}
+            <Footer/>
+            
         </section>
     )
 }

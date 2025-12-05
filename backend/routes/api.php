@@ -6,7 +6,7 @@ use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\User\UserController;
 use App\Http\Controllers\Api\PedidoController;
 use App\Http\Controllers\Api\ProductoController;
-
+use App\Http\Controllers\Api\CarritoController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -51,6 +51,30 @@ Route::middleware('jwt.auth')->group(function () {
 
     // HISTORIAL DE PEDIDOS
     Route::get('/mis-pedidos', [PedidoController::class, 'misPedidos']);
+
+    // DATOS DEL USUARIO
+    Route::get('/usuarios/datos', [AuthController::class, 'obtenerDatosUsuario']);
+
+    // ACTUALIZAR DATOS DEL USUARIO
+    Route::put('/usuarios/datos', [AuthController::class, 'actualizarDatosUsuario']);
+
+
+
+     /*
+    |------------------------------------------------
+    | Gestión del Carrito de Compras
+    |------------------------------------------------
+    | Rutas para administrar los productos en el carrito
+    | del usuario autenticado.
+    */
+    Route::prefix('carrito')->group(function () {
+        Route::get('/', [CarritoController::class, 'index']);                               // ver carrito
+        Route::post('/', [CarritoController::class, 'store']);                              // agregar producto
+        Route::put('/{producto}', [CarritoController::class, 'update']);                    // actualizar cantidad
+        Route::delete('/producto/{producto}', [CarritoController::class, 'destroy']);       // eliminar producto
+        Route::delete('/vaciar', [CarritoController::class, 'vaciar']);                     // vaciar carrito
+        Route::post('/sync', [CarritoController::class, 'sync']);                           // sincronizar carrito invitado
+    });
 });
 
 // =========================

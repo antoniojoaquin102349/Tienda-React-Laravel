@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
-import { logoutUser } from "../store/authSlice";
+import { logoutUser } from "../slices/authSlice";
 
 export const useInactivityLogout = (inactiveMinutes = 60) => {
   const navigate = useNavigate();

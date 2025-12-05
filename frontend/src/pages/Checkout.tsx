@@ -1,7 +1,10 @@
 import MensajeModal from "../components/MensajeModal";
 import { Link, useNavigate } from "react-router-dom";
-import { setCredentials } from "../store/authSlice";
+import { vaciarCarritoServidor } from "../slices/carritoSlice";
+import { setCredentials } from "../slices/authSlice";
 import { useState, useEffect } from "react";
+import Header from "../components/Header";
+import Footer from "../components/Footer";
 import { Api } from "../services/Api";
 import { store } from "../store";
 
@@ -22,8 +25,6 @@ const Checkout = () => {
       navigate("/");
     }
 
-    const metodoGuardado = localStorage.getItem("metodo_pago_guardado");
-    if (metodoGuardado) setGuardadoPrevio(true);
   }, [navigate]);
 
   const [form, setForm] = useState({
@@ -103,9 +104,6 @@ const Checkout = () => {
     if (!validarFormulario() || loading) 
       return;
 
-     console.log("Form:", form);
-    console.log("Carrito:", carrito);
-
     setLoading(true);
     setMensaje("");
 
@@ -113,12 +111,6 @@ const Checkout = () => {
       // Verificar si el email ya existe en el backend
       const existeResp = await Api.post("/check-email", { email: form.email });
       const usuarioExiste = (existeResp as any).data?.existe ?? false;
-      
-      // Agregar estos console.log para diagnosticar
-    console.log("Respuesta del servidor:", existeResp.data);
-    console.log("usuarioExiste:", usuarioExiste);
-    console.log("Token en localStorage:", localStorage.getItem("token"));
-    console.log("¿Hay token?:", !!localStorage.getItem("token"));
 
       // Si el usuario existe pero no tiene sesión activa, obligar login
       if (usuarioExiste && !localStorage.getItem("token")) {
@@ -151,9 +143,19 @@ const Checkout = () => {
         }
       }
 
-      // Limpiar carrito y redirigir
+      // Limpiar carrito y redirigir usando la función existente
+      try {
+        await vaciarCarritoServidor(); // vacía frontend y backend
+      } catch (err) {
+        console.error("No se pudo vaciar el carrito después del pedido:", err);
+      }
+      // 1️⃣ Vaciar estado React (si tienes el carrito en contexto o estado, usa eso)
+      setCarrito?.([]);
+
+      // 2️⃣ Borrar del localStorage
       localStorage.removeItem("carrito");
-      setCarrito([]);
+
+      // Mostrar éxito y redirigir
       setExito(true);
       setTimeout(() => navigate("/", { replace: true }), 2000);
 
@@ -184,7 +186,12 @@ const Checkout = () => {
   return (
     <div className="min-h-screen bg-gray-50 p-6 relative">
       
-      <div className="max-w-4xl mx-auto bg-white p-8 rounded-2xl shadow-xl">
+      {/* HEADER fijo */}
+      <div className="fixed top-0 left-0 w-full z-50">
+        <Header />
+      </div>
+      
+      <div className="max-w-4xl mx-auto bg-white p-8 rounded-2xl shadow-xl mt-20">
 
         <h1 className="text-4xl font-bold mb-8 text-center">Finalizar Compra</h1>
 
@@ -336,6 +343,10 @@ const Checkout = () => {
           <Link to="/cesta" className="block mt-4 text-gray-500 hover:underline">← Volver al carrito</Link>
         </div>
       </div>
+      
+      {/* FOOTER */}
+      <Footer/>
+      
     </div>
   );
 };

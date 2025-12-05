@@ -18,15 +18,16 @@ class Datos extends Model
         'nombre_tarjeta',
         'numero_seguridad',
         'fecha_vencimiento',
-        'metodo_pago_guardado'
-    ];
-
-    protected $casts = [
-        'metodo_pago_guardado' => 'boolean',
     ];
 
     public function user()
     {
         return $this->belongsTo(User::class);
     }
+
+    public function pedidos()
+    {
+        return $this->hasMany(Pedido::class, 'user_id', 'user_id');
+    }
+
 }

@@ -6,7 +6,7 @@ import { routes } from "./routes/route";
 import { createElement, useEffect } from "react";
 import { persistor, store } from "./store";
 import ProtectedRoute from "./pages/ProtectedRoute";
-import { checkAuth, logoutUser } from "./store/authSlice";
+import { checkAuth, logoutUser } from "./slices/authSlice";
 
 // Componente que se ejecuta cuando Redux ya está rehidratado
 const AuthInitializer = () => {

@@ -1,24 +1,25 @@
-import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
 import MensajeModal from "../components/MensajeModal";
-
-interface ProductoCarrito {
-  id: number;
-  nombre: string;
-  referencia: string;
-  precio: number | string;
-  cantidad: number;
-  imagen?: string;
-}
+import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import Header from "../components/Header";
+import Footer from "../components/Footer";
+import type {Producto} from "../types";
+import { 
+  agregarProductoServidor,
+  loadCarritoDesdeServidor, 
+  actualizarCantidadServidor,
+  vaciarCarritoServidor, 
+  eliminarItemServidor 
+} from "../slices/carritoSlice"; 
 
 const Cesta = () => {
-  const [carrito, setCarrito] = useState<ProductoCarrito[]>([]);
+  const [carrito, setCarrito] = useState<Producto[]>([]);
   const [mostrarModalConfirmarVaciado, setMostrarModalConfirmarVaciado] = useState(false);
   const [mostrarModalCarritoVacio, setMostrarModalCarritoVacio] = useState(false);
-
   const navigate = useNavigate();
   const BASE_URL = import.meta.env.VITE_APP_URL || "http://127.0.0.1:8000";
-
+  
+  // Cargar carrito de localStorage al iniciar
   useEffect(() => {
     const data = localStorage.getItem("carrito");
     if (data) {
@@ -28,9 +29,16 @@ const Cesta = () => {
         precio: parseFloat(item.precio) || 0
       }));
       setCarrito(fixed);
+      
+    }
+    // Cargar carrito desde servidor si hay token
+    const token = localStorage.getItem("token");
+    if (token) {
+      loadCarritoDesdeServidor(setCarrito);
     }
   }, []);
 
+  // Guardar carrito en localStorage cada vez que cambie
   useEffect(() => {
     if (carrito.length > 0) {
       localStorage.setItem("carrito", JSON.stringify(carrito));
@@ -41,19 +49,70 @@ const Cesta = () => {
 
   const precioNum = (precio: number | string) => parseFloat(String(precio)) || 0;
 
-  const actualizarCantidad = (id: number, nuevaCantidad: number) => {
+  const agregarAlCarrito = async (producto: Producto) => {
+    setCarrito(prev => {
+      const existe = prev.find(item => item.id === producto.id);
+      if (existe) {
+        return prev.map(item =>
+          item.id === producto.id ? { ...item, cantidad: item.cantidad + 1 } : item
+        );
+      } else {
+        return [...prev, { ...producto, cantidad: 1 }];
+      }
+    });
+
+    // Sincronizar con backend
+    const token = localStorage.getItem("token");
+  if (token) {
+    try {
+      await agregarProductoServidor(producto.id, 1);
+    } catch (error) {
+      console.error("No se pudo agregar el producto al servidor", error);
+    }
+  }
+  };    
+
+  //Actualizar la cantidad primero en el localStorage
+  const actualizarCantidad = async (id: number, nuevaCantidad: number) => {
     if (nuevaCantidad < 1) return;
+
+    // 1️⃣ Actualizar en el frontend inmediatamente (UX rápido)
     setCarrito(prev =>
       prev.map(item =>
         item.id === id ? { ...item, cantidad: nuevaCantidad } : item
       )
     );
+
+    // 2️⃣ Actualizar en el servidor
+    try {
+      await actualizarCantidadServidor(id, nuevaCantidad);
+    } catch (err) {
+      console.error("Error actualizando cantidad:", err);
+
+      // Opcional: revertir si el servidor falla
+    }
   };
 
-  const eliminarProducto = (id: number) => {
+
+  //Eliminar producto
+  const eliminarProducto = async (id: number) => {
+    const token = localStorage.getItem("token");
+
+    // Primero eliminamos en el servidor si hay sesión
+    if (token) {
+      try {
+        await eliminarItemServidor(id);
+      } catch (err) {
+        console.error("No se pudo eliminar el producto del servidor", err);
+        return; // si falla no eliminamos en el frontend
+      }
+    }
+
+    // Luego eliminamos del estado local
     const nuevoCarrito = carrito.filter(item => item.id !== id);
     setCarrito(nuevoCarrito);
 
+    // Mostrar modal si era el último producto
     if (nuevoCarrito.length === 0) {
       setMostrarModalCarritoVacio(true);
       setTimeout(() => navigate("/"), 1500);
@@ -64,25 +123,35 @@ const Cesta = () => {
     setMostrarModalConfirmarVaciado(true);
   };
 
-  const confirmarVaciado = () => {
-    setCarrito([]);
+  const confirmarVaciado = async () => {
+    setCarrito([]); // limpia UI/localStorage
     setMostrarModalConfirmarVaciado(false);
     setMostrarModalCarritoVacio(true);
-    setTimeout(() => navigate("/"), 1000);
+
+    const token = localStorage.getItem("token");
+    if (token) {
+      await vaciarCarritoServidor(); // borra en BD
+    }
+
+    navigate("/", { replace: true });
   };
 
+  // Cancelar vaciado
   const cancelarVaciado = () => {
     setMostrarModalConfirmarVaciado(false);
   };
 
   const total = carrito.reduce(
-    (acc, item) => acc + precioNum(item.precio) * item.cantidad,
-    0
+    (acc, item) => acc + precioNum(item.precio) * item.cantidad, 0
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-6">
-      <div className="max-w-6xl mx-auto">
+    <div className="min-h-screen minHeight:100vh  bg-gray-50 py-12 px-6">
+      {/* HEADER fijo */}
+      <div className="fixed top-0 left-0 w-full z-50">
+        <Header />
+      </div>
+      <div className="max-w-6xl mx-auto mt-10">
         <h1 className="text-5xl font-bold text-center mb-12">Tu Carrito</h1>
 
         <div className="space-y-6">
@@ -159,6 +228,7 @@ const Cesta = () => {
         <div className="mt-12 bg-white rounded-2xl shadow-xl p-8 text-right">
           <button
             onClick={vaciarCarrito}
+
             className="text-red-600 mb-4 block"
           >
             Vaciar carrito
@@ -206,6 +276,8 @@ const Cesta = () => {
             textoBotonSecundario="Cancelar"
             onConfirmar={confirmarVaciado}
           />
+          {/* FOOTER */}
+          <Footer /> 
       </div>
 
   );

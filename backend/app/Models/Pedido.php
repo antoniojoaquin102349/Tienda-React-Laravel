@@ -24,9 +24,20 @@ class Pedido extends Model
         'estado',
     ];
 
-    public function productos()
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function datos()
+    {
+        return $this->hasOne(Datos::class, 'user_id', 'user_id');
+    }
+
+    public function pedidoProductos()
     {
         return $this->hasMany(PedidoProducto::class);
     }
 }
+
 

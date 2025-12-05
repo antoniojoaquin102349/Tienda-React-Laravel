@@ -2,7 +2,7 @@ import { combineReducers, configureStore } from "@reduxjs/toolkit";
 import { persistReducer, persistStore } from "redux-persist";
 import { useDispatch } from "react-redux";
 import storage  from "redux-persist/lib/storage";
-import authSlice from "./authSlice";
+import authSlice from "../slices/authSlice";
 
 //import  thunk  from "redux-thunk"; cuando importo el thunk me desaparece la vista
 

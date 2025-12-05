@@ -1,7 +1,9 @@
 // src/pages/ListaProductos.tsx
-
 import { useLocation, Link } from "react-router-dom";
 import Productos from "../components/Productos";
+import Header from "../components/Header";
+import Footer from "../components/Footer";
+
 
 const ListaProductos = () => {
   const location = useLocation();
@@ -17,16 +19,17 @@ const ListaProductos = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="py-10 text-center bg-white shadow-sm">
+      
+      {/* HEADER fijo */}
+      <div className="fixed top-0 left-0 w-full z-50">
+        <Header />
+      </div>
+
+      {/* Contenido principal */}
+      <div className="py-10 text-center bg-white shadow-sm mt-15">
         <h1 className="text-3xl font-bold text-gray-800">
           {q ? `Resultados para: "${q}"` : "Todos los productos"}
         </h1>
-        <Link
-          to="/"
-          className="mt-6 inline-block px-6 py-3 bg-yellow-500 text-black font-bold rounded-lg hover:bg-yellow-600 transition"
-        >
-          ← Volver al inicio
-        </Link>
       </div>
 
       <Productos
@@ -35,6 +38,10 @@ const ListaProductos = () => {
         mostrarBadge={false}
         columnas="3"
       />
+      
+      {/* FOOTER */}
+      <Footer/>
+      
     </div>
   );
 };

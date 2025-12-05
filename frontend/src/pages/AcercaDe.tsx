@@ -1,25 +1,36 @@
+import Header from "../components/Header";
+import Footer from "../components/Footer";
+import { Link } from "react-router-dom";
 
 export default function AcercaDe() {
   return (
+    
     <div
-      style={{
-        fontFamily: "Arial, sans-serif",
-        backgroundColor: "#111",
-        color: "#fff",
-        padding: "40px",
-        lineHeight: 1.6,
-        minHeight: "100vh",
-      }}
-    >
-      <div
-        style={{
-          maxWidth: "800px",
-          margin: "auto",
-          backgroundColor: "#1c1c1c",
-          padding: "30px",
-          borderRadius: "10px",
-        }}
-      >
+  style={{
+    fontFamily: "Arial, sans-serif",
+    backgroundColor: "#f9f9f9", // fondo claro para toda la página
+    color: "#000", // texto negro para que se vea
+    minHeight: "100vh",
+    display: "flex",
+    flexDirection: "column",
+  }}
+>
+  {/* HEADER */}
+  <Header />
+
+  {/* CONTENIDO PRINCIPAL */}
+  <div
+    style={{
+      maxWidth: "800px",
+      margin: "40px auto", // espacio arriba y abajo
+      backgroundColor: "#1c1c1c",
+      color: "#fff", // texto dentro del contenedor oscuro
+      padding: "30px",
+      borderRadius: "10px",
+      lineHeight: 1.6,
+      flex: 1, // ocupa el espacio disponible
+    }}
+  >
         <h1
           style={{
             color: "#f1c40f",
@@ -61,31 +72,9 @@ export default function AcercaDe() {
           según tus necesidades. Porque no se trata solo de piezas, sino de
           confianza en cada kilómetro.
         </p>
-
-        <a
-          href="/"
-          style={{
-            display: "block",
-            width: "fit-content",
-            margin: "40px auto 0",
-            backgroundColor: "#f1c40f",
-            color: "#000",
-            padding: "12px 20px",
-            textDecoration: "none",
-            borderRadius: "6px",
-            fontWeight: "bold",
-            transition: "background-color 0.3s",
-          }}
-          onMouseEnter={(e) =>
-            (e.currentTarget.style.backgroundColor = "#d4ac0d")
-          }
-          onMouseLeave={(e) =>
-            (e.currentTarget.style.backgroundColor = "#f1c40f")
-          }
-        >
-          ← Volver a la página principal
-        </a>
       </div>
+      {/* FOOTER */}
+      <Footer /> 
     </div>
   );
 }

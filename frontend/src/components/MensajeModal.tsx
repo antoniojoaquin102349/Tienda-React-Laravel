@@ -1,22 +1,5 @@
-import type { ReactNode } from "react";
 import { useEffect } from "react";
-
-interface MensajeModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  titulo: string;
-  mensaje?: string;
-  children?: ReactNode;
-  mostrarBotones?: boolean;
-  textoBotonPrimario?: string;
-  textoBotonSecundario?: string;
-  onConfirmar?: () => void;
-  tipoContenido?: "producto" | "confirmacion" | "mensaje";
-  mostrarCerrar?: boolean;
-  autoCerrarMs?: number;
-  accionBotonSecundario?: "cerrar" | "redirigir";
-  urlRedirigir?: string
-}
+import type { MensajeModalProps } from "../types";
 
 const MensajeModal: React.FC<MensajeModalProps> = ({
   isOpen,

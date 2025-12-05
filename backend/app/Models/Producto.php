@@ -11,6 +11,7 @@ class Producto extends Model
     protected $fillable = [
         'referencia',
         'nombre',
+        'categoria',
         'precio',
         'stock',
         'descripcion',
@@ -30,5 +31,10 @@ class Producto extends Model
                 throw new \Exception('El campo referencia es obligatorio');
             }
         });
+    }
+
+    public function pedidoProductos()
+    {
+        return $this->hasMany(PedidoProducto::class);
     }
 }

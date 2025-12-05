@@ -1,7 +1,9 @@
-import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import Header from "../components/Header";
+import Footer from "../components/Footer";
+import { Link } from "react-router-dom";
 import axios from "axios";
-
 interface Producto {
   nombre: string;
   referencia?: string;
@@ -13,6 +15,7 @@ interface Producto {
 interface Pedido {
   id: number;
   total: number;
+  estado?: string;
   created_at: string;
   productos: Producto[];
 }
@@ -25,6 +28,12 @@ const HistorialPedidos = () => {
 
   const BASE_URL = import.meta.env.VITE_APP_URL || "http://127.0.0.1:8000";
   const [_modalLogin, setModalLogin] = useState(false);
+
+  const [modalDevolucionOpen, setModalDevolucionOpen] = useState(false);
+  const [pedidoSeleccionado, setPedidoSeleccionado] = useState<Pedido | null>(null);
+  const [motivo, setMotivo] = useState("");
+  const [mensajeExito, setMensajeExito] = useState("");
+
 
 
   useEffect(() => {
@@ -101,7 +110,13 @@ const HistorialPedidos = () => {
 
   return (
     <div className="min-h-screen py-12 px-6 bg-gray-50">
-      <div className="max-w-6xl mx-auto">
+
+      {/* HEADER fijo */}
+      <div className="fixed top-0 left-0 w-full z-50">
+        <Header />
+      </div>
+
+      <div className="max-w-6xl mx-auto mt-10">
         <h1 className="text-5xl font-bold text-center mb-12 text-gray-800">Mis Pedidos</h1>
 
         {pedidos.length === 0 ? (
@@ -121,6 +136,10 @@ const HistorialPedidos = () => {
                 <div className="bg-gradient-to-r from-green-600 to-green-700 text-white p-6">
                   <div className="flex justify-between items-center">
                     <h2 className="text-2xl font-bold">Pedido #{pedido.id}</h2>
+                    <p className="text-md bg-white text-green-700 px-4 py-1 rounded-lg font-bold shadow">
+                      Estado: {pedido.estado ?? "pendiente"}
+                    </p>
+
                     <div className="text-right">
                       <p className="text-lg opacity-90">
                         {new Date(pedido.created_at).toLocaleDateString("es-ES", {
@@ -184,6 +203,21 @@ const HistorialPedidos = () => {
                       </div>
                     ))}
                   </div>
+                  
+                  {pedido.estado === "entregado" && (
+                  <div className="mt-8 text-right">
+                    <button
+                      className="px-6 py-3 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 transition"
+                      onClick={() => {
+                        setPedidoSeleccionado(pedido);
+                        setModalDevolucionOpen(true);
+                      }}
+                    >
+                      Devolver producto
+                    </button>
+                  </div>
+                )}
+
                 </div>
               </div>
             ))}
@@ -199,6 +233,76 @@ const HistorialPedidos = () => {
           </a>
         </div>
       </div>
+      {/* FOOTER */}
+      <Footer/>  
+      
+        {/*ELIGES LA OPCION DE LA DEVOLUCIÓN*/}
+        {modalDevolucionOpen && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]">
+            <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md">
+              <h2 className="text-2xl font-bold mb-6 text-gray-800">
+                Motivo de la devolución
+              </h2>
+
+              <label htmlFor="motivoDevolucion" className="sr-only">
+                Motivo de devolución
+              </label>
+              <select
+                id="motivoDevolucion"
+                name="motivoDevolucion"
+                value={motivo}
+                onChange={(e) => setMotivo(e.target.value)}
+                className="border px-3 py-2 rounded mt-1 w-full"
+              >
+                <option value="">Selecciona un motivo</option>
+                <option value="defectuoso">Producto defectuoso</option>
+                <option value="equivocado">Producto equivocado</option>
+                <option value="noGusta">No me gusta</option>
+              </select>
+
+
+              <div className="flex justify-between">
+                <button
+                  className="px-6 py-3 bg-gray-400 text-white rounded-xl hover:bg-gray-500"
+                  onClick={() => setModalDevolucionOpen(false)}
+                >
+                  Cancelar
+                </button>
+
+                <button
+                  className="px-6 py-3 bg-red-600 text-white rounded-xl hover:bg-red-700"
+                  onClick={async () => {
+                    if (!motivo || !pedidoSeleccionado) return;
+
+                    const token = localStorage.getItem("token");
+                    try {
+                      await axios.post(
+                        `${BASE_URL}/api/devolver-producto`,
+                        {
+                          pedido_id: pedidoSeleccionado.id,
+                          motivo,
+                        },
+                        {
+                          headers: { Authorization: `Bearer ${token}` }
+                        }
+                      );
+
+                      setMensajeExito("Solicitud de devolución enviada correctamente.");
+                      setModalDevolucionOpen(false);
+
+                      setTimeout(() => setMensajeExito(""), 2500);
+                    } catch (err) {
+                      console.error("Error al enviar devolución:", err);
+                    }
+                  }}
+                >
+                  Enviar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+                      
     </div>
   );
 };

@@ -101,7 +101,6 @@ class PedidoController extends Controller
                 'fecha_vencimiento' => isset($datos['guardarPago']) && $datos['guardarPago'] 
                     ? $datos['vencimiento'] 
                     : null,
-                'metodo_pago_guardado' => $datos['guardarPago'] ?? false,
             ]);
         }
         // Si ya existe un registro y el usuario marca explícitamente el checkbox para guardar los datos de pago
@@ -110,7 +109,6 @@ class PedidoController extends Controller
                 'numero_tarjeta' => '**** **** **** ' . substr($datos['numeroTarjeta'], -4),
                 'nombre_tarjeta' => $datos['nombreTarjeta'],
                 'fecha_vencimiento' => $datos['vencimiento'],
-                'metodo_pago_guardado' => true,
             ]);
         }
 

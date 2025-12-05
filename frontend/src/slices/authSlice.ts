@@ -1,19 +1,7 @@
 // store/authSlice.ts
 import { createAsyncThunk, createSlice, createAction } from "@reduxjs/toolkit";
 import { Api } from "../services/Api";
-
-interface IUser {
-  id: number;
-  name: string;
-  email: string;
-}
-
-interface AuthState {
-  token: string | null;
-  user: IUser | null;
-  islogin: boolean;
-  isloading: boolean;
-}
+import type {IUser, AuthState} from "../types";
 
 const tokenFromStorage = localStorage.getItem("token");
 const userFromStorage = localStorage.getItem("user");
@@ -23,6 +11,7 @@ const initialState: AuthState = {
   user: userFromStorage ? JSON.parse(userFromStorage) : null,
   islogin: !!tokenFromStorage,
   isloading: false,
+  carrito: [],
 };
 
 // Acción simple para login con Google (cuando viene el token en la URL)

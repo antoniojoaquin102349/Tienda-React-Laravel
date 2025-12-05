@@ -11,6 +11,7 @@ use Laravel\Socialite\Facades\Socialite;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
+use App\Models\Datos;
 use App\Models\User;
 use Exception;
 
@@ -129,4 +130,61 @@ class AuthController extends Controller
         auth('api')->logout();
         return response()->json(['message' => 'Sesión cerrada correctamente']);
     }
+
+    
+    // ===========================
+    // Datos
+    // ===========================
+    public function obtenerDatosUsuario()
+    {
+        $user = JWTAuth::user();
+        $datos = Datos::where('user_id', $user->id)->first();
+
+        if (!$datos) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No hay datos registrados'
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'datos' => $datos
+        ]);
+    }
+
+    // ===========================
+    // Actualizar Datos
+    // ===========================
+    public function actualizarDatosUsuario(Request $request)
+{
+    $user = JWTAuth::user();
+    if (!$user) {
+        return response()->json([
+            'success' => false,
+            'message' => 'No autorizado'
+        ], 401);
+    }
+
+    $datos = Datos::updateOrCreate(
+        ['user_id' => $user->id],
+        [
+            'telefono' => $request->telefono,
+            'direccion' => $request->direccion,
+            'ciudad' => $request->ciudad,
+            'codigo_postal' => $request->codigo_postal,
+            'numero_tarjeta' => $request->numero_tarjeta,
+            'nombre_tarjeta' => $request->nombre_tarjeta,
+            'fecha_vencimiento' => $request->fecha_vencimiento,
+        ]
+    );
+
+    return response()->json([
+        'success' => true,
+        'datos' => $datos,
+        'message' => 'Datos actualizados correctamente'
+    ]);
+}
+
+
 }

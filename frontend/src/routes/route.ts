@@ -1,19 +1,23 @@
-import Home from "../pages/Home";
-import Login from "../pages/Login";
-import Cesta from "../pages/Cesta.tsx";
-import Register from "../pages/Register";
-import AcercaDe from "../pages/AcercaDe";
-import ListaProductos from "../pages/ListaProductos";
 import AuthGoogleCallback from "../pages/auth/AuthGoogleCallback";
 import HistorialPedidos from "../pages/HistorialPedidos";
+import ListaProductos from "../pages/ListaProductos";
+import PreguntasF from "../pages/PreguntasF.tsx";
+import Contacto from "../pages/Contacto.tsx";
+import Register from "../pages/Register";
+import AcercaDe from "../pages/AcercaDe";
 import Checkout from "../pages/Checkout";
+import Cesta from "../pages/Cesta.tsx";
+import Login from "../pages/Login";
+import Datos from "../pages/Datos";
+import Home from "../pages/Home";
 
-type TypeRoute = {
-    path: string;
-    element: any;
-    isProtected?: boolean;
-    children?: TypeRoute[]; 
+type TypeRoute = { 
+    path: string; 
+    element: any; 
+    isProtected?: boolean; 
+    children?: TypeRoute[];
 }
+
 
 export const routes: TypeRoute[] = [
     { 
@@ -51,5 +55,17 @@ export const routes: TypeRoute[] = [
     {
         path: "/checkout", 
         element: Checkout
+    },
+    {
+        path: "/contacto", 
+        element: Contacto
+    },
+    {
+        path: "/preguntas", 
+        element: PreguntasF
+    },
+    {
+        path: "/datos", 
+        element: Datos
     }
-];  
+]; 

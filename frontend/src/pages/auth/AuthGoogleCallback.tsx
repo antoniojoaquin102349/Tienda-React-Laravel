@@ -2,7 +2,7 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
-import { setCredentials } from "../../store/authSlice";
+import { setCredentials } from "../../slices/authSlice";
 
 
 const AuthGoogleCallback = () => {
