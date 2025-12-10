@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Productos\Tables;
 
+<<<<<<< HEAD
 use Filament\Tables\Table;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\ImageColumn;
@@ -9,6 +10,11 @@ use Filament\Tables\Actions\ViewAction;
 use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
+=======
+
+use Filament\Tables\Table;
+use Filament\Tables;
+>>>>>>> feature
 
 class ProductosTable
 {
@@ -16,6 +22,7 @@ class ProductosTable
     {
         return $table
             ->columns([
+<<<<<<< HEAD
                 // IMAGEN - ahora sí aparece y bien bonita
                 ImageColumn::make('imagen')
                     ->label('Imagen')
@@ -67,6 +74,34 @@ class ProductosTable
             ])
             ->bulkActions([
                 DeleteBulkAction::make(),
+=======
+                Tables\Filament\Tables\Columns\TextColumn::make('nombre')
+                    ->searchable()
+                    ->sortable(),
+                \Filament\Tables\Columns\TextColumn::make('referencia')
+                    ->searchable()
+                     ->sortable(),
+                \Filament\Tables\Columns\TextColumn::make('categoria')
+                    ->searchable()
+                    ->sortable(),
+                \Filament\Tables\Columns\IconColumn::make('vendido')
+                    ->label('Vendido')
+                    ->searchable()
+                    ->sortable()
+                    ->color(fn ($state) => $state > 0 ? 'success' : 'secondary'),
+                \Filament\Tables\Columns\TextColumn::make('precio')
+                    ->searchable()
+                    ->sortable()
+                    ->money('eur'),
+                \Filament\Tables\Columns\TextColumn::make('stock')
+                    ->searchable()
+                    ->sortable()
+                    ->badge()
+                    ->color(fn ($state) => $state <= 0 ? 'danger' : 'success'),
+            ])
+            ->filters([
+                //
+>>>>>>> feature
             ]);
     }
 }
