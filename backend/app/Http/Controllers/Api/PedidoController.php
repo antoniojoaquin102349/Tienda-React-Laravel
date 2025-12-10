@@ -193,6 +193,8 @@ class PedidoController extends Controller
 
         return response()->json($pedidos);
     }
+    
+    
     public function misPedidos()
     {
         $user = JWTAuth::user();
@@ -205,12 +207,46 @@ class PedidoController extends Controller
             ], 401);
         }
 
-        $pedidos = Pedido::with('productos')->where('user_id', $user->id)->get();
+        // CARGAMOS TODO LO NECESARIO EN UNA SOLA QUERY
+        $pedidos = Pedido::with([
+            'productos' => function ($q) {
+                $q->select('productos.id', 'productos.nombre', 'productos.referencia', 'productos.precio', 'productos.imagen')
+                ->withPivot('cantidad', 'precio', 'nombre', 'imagen'); // Añadimos imagen también
+            },
+            'envio' // ← ¡¡ESTO ES LO IMPORTANTE!! Cargamos la relación envío (hasOne)
+        ])
+        ->where('user_id', $user->id)
+        ->latest()
+        ->get();
+
+        // Procesamos los datos para adaptarlos al frontend
+        $pedidos->each(function ($pedido) {
+            // 1. Añadimos los datos del envío en el formato que espera tu frontend
+            $enviosEnviados = [];
+
+            if ($pedido->envio) {
+                $enviosEnviados[] = [
+                    'nombre_producto'     => $pedido->envio->nombre_producto ?? 'Varios productos',
+                    'transportista'       => $pedido->envio->transportista,
+                    'numero_seguimiento'  => $pedido->envio->numero_seguimiento,
+                ];
+            }
+
+            // Añadimos la propiedad que tu interfaz Pedido espera
+            $pedido->envios_enviados = $enviosEnviados;
+
+            // 2. Añadimos cantidad, precio, nombre e imagen desde el pivot a los productos
+            $pedido->productos->each(function ($prod) {
+                $prod->cantidad = $prod->pivot->cantidad ?? 1;
+                $prod->precio   = $prod->pivot->precio   ?? $prod->precio;
+                $prod->nombre   = $prod->pivot->nombre   ?? $prod->nombre;
+                $prod->imagen   = $prod->pivot->imagen   ?? $prod->imagen;
+            });
+        });
 
         return response()->json([
             "success" => true,
             "pedidos" => $pedidos
         ]);
-        }
-    }  
-      
+    }
+}    

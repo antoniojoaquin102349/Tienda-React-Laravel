@@ -1,24 +1,11 @@
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
+import type {Producto, Pedido} from "../types";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { Link } from "react-router-dom";
 import axios from "axios";
-interface Producto {
-  nombre: string;
-  referencia?: string;
-  precio: number;
-  cantidad: number;
-  imagen?: string;
-}
 
-interface Pedido {
-  id: number;
-  total: number;
-  estado?: string;
-  created_at: string;
-  productos: Producto[];
-}
 
 const HistorialPedidos = () => {
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
@@ -63,8 +50,18 @@ const HistorialPedidos = () => {
           productos: p.productos.map((prod) => ({
             ...prod,
             precio: Number(prod.precio) || 0,
+            cantidad: Number(prod.cantidad) || 0, 
           })),
         }));
+
+        // 🔹 Ordenar de más reciente a más antiguo
+      pedidosConTotalNumero.sort((a: Pedido, b: Pedido) => 
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+
+      // =================== AÑADE ESTO AQUÍ ===================
+        console.log("PEDIDOS RECIBIDOS DEL SERVIDOR:", pedidosConTotalNumero);
+
 
         setPedidos(pedidosConTotalNumero);
         setLoading(false);
@@ -139,6 +136,23 @@ const HistorialPedidos = () => {
                     <p className="text-md bg-white text-green-700 px-4 py-1 rounded-lg font-bold shadow">
                       Estado: {pedido.estado ?? "pendiente"}
                     </p>
+                     {pedido.estado === "enviado" &&
+                        pedido.envios_enviados &&
+                        pedido.envios_enviados.length > 0 && (
+                          <div className="mt-2 text-black">
+
+                            <p className="text-gray-700">
+                              <span className="font-semibold">Transportista: </span>
+                              {pedido.envios_enviados[0].transportista ?? "No disponible"}
+                            </p>
+
+                            <p className="text-gray-700">
+                              <span className="font-semibold">Número de seguimiento: </span>
+                              {pedido.envios_enviados[0].numero_seguimiento ?? "No asignado"}
+                            </p>
+
+                          </div>
+                      )}
 
                     <div className="text-right">
                       <p className="text-lg opacity-90">
@@ -161,6 +175,7 @@ const HistorialPedidos = () => {
                         key={i}
                         className="flex flex-col lg:flex-row gap-6 bg-white border border-gray-200 rounded-xl p-6 hover:shadow-md transition-all"
                       >
+
                         <div className="w-full lg:w-48 flex-shrink-0">
                           {prod.imagen && prod.imagen.toString().trim() !== "" ? (
                             <img

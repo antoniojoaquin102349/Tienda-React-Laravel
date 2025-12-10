@@ -1,236 +1,191 @@
 import MensajeModal from "../components/MensajeModal";
 import { Link, useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
-import type {Producto} from "../types";
-import { 
-  agregarProductoServidor,
-  loadCarritoDesdeServidor, 
-  actualizarCantidadServidor,
-  vaciarCarritoServidor, 
-  eliminarItemServidor 
-} from "../slices/carritoSlice"; 
+import { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import type { RootState, AppDispatch } from "../store";
+import {
+  cargarCarrito,
+  agregarProducto,
+  actualizarCantidad,
+  vaciarCarritoServidor,
+  eliminarProducto,
+  setItems,
+} from "../slices/carritoSlice";
+import type { Producto } from "../types";
 
 const Cesta = () => {
-  const [carrito, setCarrito] = useState<Producto[]>([]);
+  const dispatch = useDispatch<AppDispatch>();
+  const carritoItems = useSelector((state: RootState) => state.carrito.items);
   const [mostrarModalConfirmarVaciado, setMostrarModalConfirmarVaciado] = useState(false);
   const [mostrarModalCarritoVacio, setMostrarModalCarritoVacio] = useState(false);
   const navigate = useNavigate();
   const BASE_URL = import.meta.env.VITE_APP_URL || "http://127.0.0.1:8000";
-  
-  // Cargar carrito de localStorage al iniciar
+
+  // Cargar carrito al montar el componente
   useEffect(() => {
-    const data = localStorage.getItem("carrito");
-    if (data) {
-      const parsed = JSON.parse(data);
-      const fixed = parsed.map((item: any) => ({
-        ...item,
-        precio: parseFloat(item.precio) || 0
-      }));
-      setCarrito(fixed);
-      
-    }
-    // Cargar carrito desde servidor si hay token
     const token = localStorage.getItem("token");
     if (token) {
-      loadCarritoDesdeServidor(setCarrito);
-    }
-  }, []);
-
-  // Guardar carrito en localStorage cada vez que cambie
-  useEffect(() => {
-    if (carrito.length > 0) {
-      localStorage.setItem("carrito", JSON.stringify(carrito));
+      dispatch(cargarCarrito());
     } else {
-      localStorage.removeItem("carrito");
+      const data = localStorage.getItem("carrito");
+      if (data) {
+        const carrito: Producto[] = JSON.parse(data);
+        dispatch(setItems(carrito));
+      }
     }
-  }, [carrito]);
+  }, [dispatch]);
 
   const precioNum = (precio: number | string) => parseFloat(String(precio)) || 0;
 
-  const agregarAlCarrito = async (producto: Producto) => {
-    setCarrito(prev => {
-      const existe = prev.find(item => item.id === producto.id);
-      if (existe) {
-        return prev.map(item =>
-          item.id === producto.id ? { ...item, cantidad: item.cantidad + 1 } : item
-        );
-      } else {
-        return [...prev, { ...producto, cantidad: 1 }];
-      }
-    });
-
-    // Sincronizar con backend
+  const handleActualizarCantidad = (id: number, cantidad: number) => {
+    if (cantidad < 1) return;
     const token = localStorage.getItem("token");
-  if (token) {
-    try {
-      await agregarProductoServidor(producto.id, 1);
-    } catch (error) {
-      console.error("No se pudo agregar el producto al servidor", error);
-    }
-  }
-  };    
 
-  //Actualizar la cantidad primero en el localStorage
-  const actualizarCantidad = async (id: number, nuevaCantidad: number) => {
-    if (nuevaCantidad < 1) return;
-
-    // 1️⃣ Actualizar en el frontend inmediatamente (UX rápido)
-    setCarrito(prev =>
-      prev.map(item =>
-        item.id === id ? { ...item, cantidad: nuevaCantidad } : item
-      )
-    );
-
-    // 2️⃣ Actualizar en el servidor
-    try {
-      await actualizarCantidadServidor(id, nuevaCantidad);
-    } catch (err) {
-      console.error("Error actualizando cantidad:", err);
-
-      // Opcional: revertir si el servidor falla
+    if (token) {
+      dispatch(actualizarCantidad({ id, cantidad }));
+    } else {
+      const data = localStorage.getItem("carrito");
+      if (!data) return;
+      const carrito: Producto[] = JSON.parse(data);
+      const item = carrito.find(p => p.id === id);
+      if (item) item.cantidad = cantidad;
+      localStorage.setItem("carrito", JSON.stringify(carrito));
+      dispatch(setItems(carrito));
     }
   };
 
-
-  //Eliminar producto
-  const eliminarProducto = async (id: number) => {
+  const handleEliminarProducto = (id: number) => {
     const token = localStorage.getItem("token");
 
-    // Primero eliminamos en el servidor si hay sesión
     if (token) {
-      try {
-        await eliminarItemServidor(id);
-      } catch (err) {
-        console.error("No se pudo eliminar el producto del servidor", err);
-        return; // si falla no eliminamos en el frontend
-      }
+      dispatch(eliminarProducto(id));
+    } else {
+      const data = localStorage.getItem("carrito");
+      if (!data) return;
+
+      // Parseamos y tipamos correctamente
+      const carritoData: Producto[] = JSON.parse(data) as Producto[];
+
+      // Filtramos el producto a eliminar
+      const carrito = carritoData.filter(p => p.id !== id);
+
+      // Guardamos el carrito actualizado en localStorage
+      localStorage.setItem("carrito", JSON.stringify(carrito));
+
+      // Opcional: actualizar Redux para que la UI refleje el cambio
+      dispatch(setItems(carrito));
+
     }
 
-    // Luego eliminamos del estado local
-    const nuevoCarrito = carrito.filter(item => item.id !== id);
-    setCarrito(nuevoCarrito);
-
-    // Mostrar modal si era el último producto
-    if (nuevoCarrito.length === 0) {
+    if (carritoItems.length === 1) {
       setMostrarModalCarritoVacio(true);
       setTimeout(() => navigate("/"), 1500);
     }
+
   };
 
-  const vaciarCarrito = () => {
+  const handleVaciarCarrito = () => {
     setMostrarModalConfirmarVaciado(true);
   };
 
-  const confirmarVaciado = async () => {
-    setCarrito([]); // limpia UI/localStorage
-    setMostrarModalConfirmarVaciado(false);
-    setMostrarModalCarritoVacio(true);
-
+  const confirmarVaciado = () => {
     const token = localStorage.getItem("token");
     if (token) {
-      await vaciarCarritoServidor(); // borra en BD
+      dispatch(vaciarCarritoServidor());
     }
-
+    localStorage.removeItem("carrito");
+    dispatch(setItems([]));
+    setMostrarModalConfirmarVaciado(false);
+    setMostrarModalCarritoVacio(true);
     navigate("/", { replace: true });
   };
 
-  // Cancelar vaciado
-  const cancelarVaciado = () => {
-    setMostrarModalConfirmarVaciado(false);
-  };
+  const cancelarVaciado = () => setMostrarModalConfirmarVaciado(false);
 
-  const total = carrito.reduce(
-    (acc, item) => acc + precioNum(item.precio) * item.cantidad, 0
+  const total = carritoItems.reduce(
+    (acc, item) => acc + precioNum(item.precio) * item.cantidad,
+    0
   );
 
   return (
-    <div className="min-h-screen minHeight:100vh  bg-gray-50 py-12 px-6">
-      {/* HEADER fijo */}
+    <div className="min-h-screen bg-gray-50 py-12 px-6">
       <div className="fixed top-0 left-0 w-full z-50">
         <Header />
       </div>
+
       <div className="max-w-6xl mx-auto mt-10">
         <h1 className="text-5xl font-bold text-center mb-12">Tu Carrito</h1>
 
-        <div className="space-y-6">
-          {carrito.map(item => (
-            <div
-              key={item.id}
-              className="bg-white rounded-2xl shadow-lg p-6 flex flex-col md:flex-row items-center gap-6"
-            >
-              <img
-                src={
-                  item.imagen
-                    ? `${BASE_URL}/storage/${item.imagen}`
-                    : "/img/no-image.jpg"
-                }
-                alt={item.nombre}
-                className="w-32 h-32 object-contain rounded-xl bg-gray-50 p-4 shadow"
-                onError={e => (e.currentTarget.src = "/img/no-image.jpg")}
-              />
-
-              <div className="flex-1 text-center md:text-left">
-                <h3 className="text-2xl font-bold">{item.nombre}</h3>
-                <p className="text-gray-600">Ref: {item.referencia}</p>
-                <p className="text-xl font-semibold text-green-600">
-                  {precioNum(item.precio).toFixed(2)} € / ud.
-                </p>
-              </div>
-
-              <div className="flex items-center gap-4">
-                <button
-                  onClick={() => actualizarCantidad(item.id, item.cantidad - 1)}
-                  className="w-12 h-12 bg-gray-200 hover:bg-gray-300 rounded-full text-2xl font-bold"
-                >
-                  −
-                </button>
-
-                <input
-                  type="number"
-                  value={item.cantidad}
-                  onChange={e =>
-                    actualizarCantidad(
-                      item.id,
-                      parseInt(e.target.value) || 1
-                    )
-                  }
-                  className="w-20 text-center text-xl font-bold border-2 rounded-lg py-2"
-                  min="1"
-                  placeholder="Cantidad"
-                  title="Cantidad de producto"
+        {carritoItems.length === 0 ? (
+          <p className="text-center text-gray-500 text-lg">Tu carrito está vacío.</p>
+        ) : (
+          <div className="space-y-6">
+            {carritoItems.map(item => (
+              <div
+                key={item.id}
+                className="bg-white rounded-2xl shadow-lg p-6 flex flex-col md:flex-row items-center gap-6"
+              >
+                <img
+                  src={item.imagen ? `${BASE_URL}/storage/${item.imagen}` : "/img/no-image.jpg"}
+                  alt={item.nombre}
+                  className="w-32 h-32 object-contain rounded-xl bg-gray-50 p-4 shadow"
+                  onError={e => (e.currentTarget.src = "/img/no-image.jpg")}
                 />
 
-                <button
-                  onClick={() => actualizarCantidad(item.id, item.cantidad + 1)}
-                  className="w-12 h-12 bg-green-600 hover:bg-green-700 text-white rounded-full text-2xl font-bold"
-                >
-                  +
-                </button>
-              </div>
+                <div className="flex-1 text-center md:text-left">
+                  <h3 className="text-2xl font-bold">{item.nombre}</h3>
+                  <p className="text-gray-600">Ref: {item.referencia}</p>
+                  <p className="text-xl font-semibold text-green-600">
+                    {precioNum(item.precio).toFixed(2)} € / ud.
+                  </p>
+                </div>
 
-              <div className="text-center">
-                <p className="text-2xl font-bold">
-                  {(precioNum(item.precio) * item.cantidad).toFixed(2)} €
-                </p>
-                <button
-                  onClick={() => eliminarProducto(item.id)}
-                  className="mt-2 text-red-600 hover:text-red-800"
-                >
-                  Eliminar
-                </button>
+                <div className="flex items-center gap-4">
+                  <button
+                    onClick={() => handleActualizarCantidad(item.id, item.cantidad - 1)}
+                    className="w-12 h-12 bg-gray-200 hover:bg-gray-300 rounded-full text-2xl font-bold"
+                  >
+                    −
+                  </button>
+
+                  <input
+                    type="number"
+                    value={item.cantidad}
+                    onChange={e => handleActualizarCantidad(item.id, parseInt(e.target.value) || 1)}
+                    className="w-20 text-center text-xl font-bold border-2 rounded-lg py-2"
+                    min="1"
+                    placeholder="Cantidad"
+                    title="Cantidad de producto"
+                  />
+                  
+                  <button
+                    onClick={() => handleActualizarCantidad(item.id, item.cantidad + 1)}
+                    className="w-12 h-12 bg-green-600 hover:bg-green-700 text-white rounded-full text-2xl font-bold"
+                  >
+                    +
+                  </button>
+                </div>
+
+                <div className="text-center">
+                  <p className="text-2xl font-bold">
+                    {(precioNum(item.precio) * item.cantidad).toFixed(2)} €
+                  </p>
+                  <button
+                    onClick={() => handleEliminarProducto(item.id)}
+                    className="mt-2 text-red-600 hover:text-red-800"
+                  >
+                    Eliminar
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
 
         <div className="mt-12 bg-white rounded-2xl shadow-xl p-8 text-right">
-          <button
-            onClick={vaciarCarrito}
-
-            className="text-red-600 mb-4 block"
-          >
+          <button onClick={handleVaciarCarrito} className="text-red-600 mb-4 block">
             Vaciar carrito
           </button>
 
@@ -255,31 +210,29 @@ const Cesta = () => {
         </div>
       </div>
 
-        {/* Modales manejados por el componente MensajeModal */}
-          <MensajeModal
-            isOpen={mostrarModalCarritoVacio}
-            onClose={() => setMostrarModalCarritoVacio(false)}
-            titulo="Carrito"
-            mensaje="Tu carrito está vacío."
-            mostrarCerrar={false}   // oculta la X
-            autoCerrarMs={1500}     
-          />
+      <MensajeModal
+        isOpen={mostrarModalCarritoVacio}
+        onClose={() => setMostrarModalCarritoVacio(false)}
+        titulo="Carrito"
+        mensaje="Tu carrito está vacío."
+        mostrarCerrar={false}
+        autoCerrarMs={1500}
+      />
 
-          <MensajeModal
-            isOpen={mostrarModalConfirmarVaciado}
-            onClose={cancelarVaciado}
-            titulo="Vaciar carrito"
-            mensaje="¿Seguro que deseas vaciar todo el carrito?"
-            mostrarBotones={true}
-            mostrarCerrar={false}  // oculta la X
-            textoBotonPrimario="Vaciar"
-            textoBotonSecundario="Cancelar"
-            onConfirmar={confirmarVaciado}
-          />
-          {/* FOOTER */}
-          <Footer /> 
-      </div>
+      <MensajeModal
+        isOpen={mostrarModalConfirmarVaciado}
+        onClose={cancelarVaciado}
+        titulo="Vaciar carrito"
+        mensaje="¿Seguro que deseas vaciar todo el carrito?"
+        mostrarBotones={true}
+        mostrarCerrar={false}
+        textoBotonPrimario="Vaciar"
+        textoBotonSecundario="Cancelar"
+        onConfirmar={confirmarVaciado}
+      />
 
+      <Footer />
+    </div>
   );
 };
 

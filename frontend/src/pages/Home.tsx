@@ -1,32 +1,29 @@
-import { loadCarritoDesdeServidor } from "../slices/carritoSlice";
 import { useSelector, useDispatch } from "react-redux";
 import { useState, useRef, useEffect } from "react";
-import { logoutUser } from "../slices/authSlice";
-import Productos from "../components/Productos";
+import { Link } from "react-router-dom";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
-import type { RootState } from "../store";
-import type { Producto } from "../types";
-import { Link } from "react-router-dom";
+import Productos from "../components/Productos";
+import { logoutUser } from "../slices/authSlice";
+import { cargarCarrito, vaciarCarritoServidor } from "../slices/carritoSlice";
+import type { RootState, AppDispatch } from "../store";
 
 const Home = () => {
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<AppDispatch>();
   const user = useSelector((state: RootState) => state.auth.user);
+  const carritoItems = useSelector((state: RootState) => state.carrito.items);
   const userName = user?.name || "Invitado";
+
   const [searchTerm, setSearchTerm] = useState("");
-  const [carrito, setCarrito] = useState<Producto[]>([]);
-
-
-  // Dropdown categorías
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
   const handleLogout = () => {
-    dispatch(logoutUser());     // Limpia Redux
-    localStorage.removeItem("carrito");  // Limpia carrito almacenado
-    localStorage.removeItem("token");    // Por si acaso
-    localStorage.removeItem("user");
-    window.location.reload();   // opcional para forzar refresco del contador
+    dispatch(logoutUser());
+    dispatch(vaciarCarritoServidor());
+    localStorage.removeItem("carrito"); // limpiar carrito invitado
   };
+
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,7 +32,6 @@ const Home = () => {
     }
   };
 
-  // Cerrar dropdown al hacer clic fuera
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -46,22 +42,18 @@ const Home = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // 👉 Cargar carrito en Redux cuando inicia sesión
   useEffect(() => {
     if (user) {
-      loadCarritoDesdeServidor(setCarrito);
+      dispatch(cargarCarrito());
     }
-  }, [user]);
+  }, [user, dispatch]);
 
   const toggleDropdown = () => setIsDropdownOpen(prev => !prev);
 
-  // Contador del carrito (opcional pero queda muy pro)
-  const carritoCount = carrito.reduce((total, item) => total + item.cantidad, 0);
-
-
-
   return (
     <div className="w-full min-h-screen flex flex-col">
-      
+
       {/* HEADER fijo */}
       <div className="fixed top-0 left-0 w-full z-50">
         <Header />
@@ -92,10 +84,8 @@ const Home = () => {
       <div className="flex-1">
         <Productos titulo="Productos más vendidos" limit={4} />
       </div>
-      
-      {/* FOOTER */}
-      <Footer/>    
 
+      <Footer />
     </div>
   );
 };

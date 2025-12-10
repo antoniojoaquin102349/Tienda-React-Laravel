@@ -24,18 +24,17 @@ export interface AuthState {
   user: IUser | null;
   islogin: boolean;
   isloading: boolean;
-  carrito: Producto[];
 }
 
 export interface Producto {
   id: number;
   nombre: string;
   referencia: string;
-  precio: number | string;
+  precio: number;
   descripcion?: string;
   cantidad: number;
-  imagen?: string;
-  stock?: number; // <-- stock incluido
+  imagen: string | null;
+  stock?: number; 
 }
 
 export interface ProductosProps {
@@ -53,8 +52,27 @@ export interface ProductoDato {
   referencia: string;
   precio: number | string;
   descripcion?: string;
-  imagen?: string;
+  imagen: string | null;
   stock?: number; 
+}
+
+export interface CarritoState {
+  items: Producto[];
+  isLoading: boolean;
+  error: string | null;
+}
+
+export interface Pedido {
+  id: number;
+  total: number;
+  estado?: string;
+  created_at: string;
+  productos: Producto[];
+  envios_enviados?: {
+  nombre_producto: string;
+  transportista?: string | null;
+  numero_seguimiento?: string | null;
+  }[];
 }
 
 export interface MensajeModalProps {

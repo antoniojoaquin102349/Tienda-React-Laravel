@@ -46,9 +46,9 @@ class Pedido extends Model
                     ->withPivot(['cantidad', 'precio'])
                     ->withTimestamps();
     }
-     public function envios()
+     public function envio()
     {
-        return $this->belongsTo(Envio::class);
+        return $this->hasOne(\App\Models\Envio::class, 'pedido_id');
     }
 }
 

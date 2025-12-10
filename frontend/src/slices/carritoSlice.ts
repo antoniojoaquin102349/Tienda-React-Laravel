@@ -1,161 +1,231 @@
+// store/carritoSlice.ts
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import type {PayloadAction} from "@reduxjs/toolkit";
 import { authHeaders } from "../services/Api";
-import type { Producto} from "../types";
+import type { CarritoState, Producto } from "../types";
+import type { AppDispatch } from "../store";
 
-const BASE_URL = import.meta.env.VITE_APP_URL || "http://localhost:8000"; // ajusta según tu backend
+const BASE_URL = import.meta.env.VITE_APP_URL || "http://localhost:8000";
 
-// 👉 Añade un producto al carrito del usuario en el servidor
-export const agregarProductoServidor = async (productoId: number, cantidad: number) => {
-  const token = localStorage.getItem('token');
+// ====================
+// THUNKS ASÍNCRONOS (Usuarios logueados)
+// ====================
 
-  const response = await fetch('http://127.0.0.1:8000/api/carrito', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
-    },
-    body: JSON.stringify({ producto_id: productoId, cantidad })
-  });
+// Cargar carrito desde backend
+export const cargarCarrito = createAsyncThunk<Producto[], void>(
+  "carrito/cargarCarrito",
+  async (_, { rejectWithValue }) => {
+    const token = localStorage.getItem("token");
+    if (!token?.trim()) return [];
 
-  if (!response.ok) {
-    const text = await response.text();
-    console.error("ERROR DEL SERVIDOR:", text);
-    throw new Error('Error al agregar producto al carrito en el servidor');
-  }
-
-  return response.json();
-};
-
-
-// 👉 Sincroniza el carrito con el servidor (solo si hay token válido)
-export const syncCarritoConServidor = async (cart: Producto[]) => {
-  const token = localStorage.getItem("token");
-  if (!token || token.trim() === "") return;
-
-  try {
-    const response = await fetch(`${BASE_URL}/api/carrito/sync`, {
-      method: "POST",
-      headers: authHeaders(),
-      body: JSON.stringify({ cart }),
-    });
-
-    if (!response.ok) {
-      console.error("Error sincronizando carrito:", response.statusText);
-    } else {
-      console.log("Carrito sincronizado correctamente con servidor");
-    }
-  } catch (err) {
-    console.error("Error sincronizando carrito:", err);
-  }
-};
-
-
-// 👉 Carga el carrito desde el servidor (solo si hay token válido)
-export const loadCarritoDesdeServidor = async (
-  setCarrito: (c: Producto[]) => void
-) => {
-  const token = localStorage.getItem("token");
-  if (!token || token.trim() === "") return; // no cargar si no hay sesión
-
-  try {
-    const response = await fetch(`${BASE_URL}/api/carrito`, {
-      headers: authHeaders(),
-    });
-
-    if (!response.ok) {
-      console.error("Error al cargar carrito:", response.statusText);
-      return;
-    }
-
-    const serverCart = await response.json();
-    console.log("Respuesta cruda del servidor:", serverCart);
-
-    // Manejar si la API devuelve { carritpo: [...] } o directamente un array
-    const items = Array.isArray(serverCart)
-      ? serverCart
-      : serverCart.carrito || serverCart.cart || [];
-
-    if (items.length > 0) {
-      const mapped: Producto[] = items.map((i: any) => ({
+    try {
+      const res = await fetch(`${BASE_URL}/api/carrito`, { headers: authHeaders() });
+      if (!res.ok) throw new Error("Error al cargar carrito");
+      const data = await res.json();
+      const items = Array.isArray(data) ? data : data.carrito || data.cart || [];
+      return items.map((i: any) => ({
         id: i.id,
         nombre: i.nombre,
         referencia: i.referencia,
         precio: parseFloat(i.precio),
         cantidad: i.cantidad,
         imagen: i.imagen,
+        stock: i.stock,
       }));
-
-      setCarrito(mapped);
-      console.log("Carrito cargado desde servidor:", mapped);
-    } else {
-      console.log("Servidor devolvió carrito vacío, mantengo localStorage");
+    } catch (err: any) {
+      return rejectWithValue(err.message);
     }
-  } catch (err) {
-    console.error("Error cargando carrito:", err);
   }
+);
+
+// Agregar producto al backend
+export const agregarProducto = createAsyncThunk<Producto, { producto: Producto }>(
+  "carrito/agregarProducto",
+  async ({ producto }, { rejectWithValue }) => {
+    const token = localStorage.getItem("token");
+    if (!token?.trim()) return rejectWithValue("No autenticado");
+
+    try {
+      const res = await fetch(`${BASE_URL}/api/carrito`, {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({ producto_id: producto.id, cantidad: producto.cantidad }),
+      });
+      if (!res.ok) throw new Error("Error al agregar producto");
+      const data = await res.json();
+      return {
+        id: data.id || producto.id,
+        nombre: data.nombre || producto.nombre,
+        referencia: data.referencia || producto.referencia,
+        precio: parseFloat(data.precio) || producto.precio,
+        cantidad: data.cantidad || producto.cantidad,
+        imagen: data.imagen || producto.imagen,
+        stock: data.stock,
+      };
+    } catch (err: any) {
+      return rejectWithValue(err.message);
+    }
+  }
+);
+
+// Actualizar cantidad en backend
+export const actualizarCantidad = createAsyncThunk<{ id: number; cantidad: number }, { id: number; cantidad: number }>(
+  "carrito/actualizarCantidad",
+  async ({ id, cantidad }, { rejectWithValue }) => {
+    const token = localStorage.getItem("token");
+    if (!token?.trim()) return rejectWithValue("No autenticado");
+
+    try {
+      const res = await fetch(`${BASE_URL}/api/carrito/${id}`, {
+        method: "PUT",
+        headers: authHeaders(),
+        body: JSON.stringify({ cantidad }),
+      });
+      if (!res.ok) throw new Error("Error al actualizar cantidad");
+      return { id, cantidad };
+    } catch (err: any) {
+      return rejectWithValue(err.message);
+    }
+  }
+);
+
+// Eliminar producto del backend
+export const eliminarProducto = createAsyncThunk<number, number>(
+  "carrito/eliminarProducto",
+  async (id, { rejectWithValue }) => {
+    const token = localStorage.getItem("token");
+    if (!token?.trim()) return rejectWithValue("No autenticado");
+
+    try {
+      const res = await fetch(`${BASE_URL}/api/carrito/producto/${id}`, {
+        method: "DELETE",
+        headers: authHeaders(),
+      });
+      if (!res.ok) throw new Error("Error al eliminar producto");
+      return id;
+    } catch (err: any) {
+      return rejectWithValue(err.message);
+    }
+  }
+);
+
+// Vaciar carrito en backend
+export const vaciarCarritoServidor = createAsyncThunk(
+  "carrito/vaciarCarritoServidor",
+  async (_, { rejectWithValue }) => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    try {
+      const res = await fetch(`${BASE_URL}/api/carrito/vaciar`, {
+        method: "DELETE",
+        headers: authHeaders(),
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        return rejectWithValue(text || "Error vaciando carrito");
+      }
+      return true;
+    } catch (err) {
+      return rejectWithValue(err);
+    }
+  }
+);
+
+// ====================
+// SLICE
+// ====================
+const initialState: CarritoState = {
+  items: [],
+  isLoading: false,
+  error: null,
 };
 
-// Actualizar la cantidad del producto
-export const actualizarCantidadServidor = async (productId: number, cantidad: number) => {
-  const token = localStorage.getItem("token");
-  if (!token?.trim()) return;
+const carritoSlice = createSlice({
+  name: "carrito",
+  initialState,
+  reducers: {
+    reset: (state) => {
+      state.items = [];
+      state.isLoading = false;
+      state.error = null;
+    },
+    setItems: (state, action: PayloadAction<Producto[]>) => {
+      state.items = action.payload;
+    },
 
-  try {
-    const response = await fetch(`${BASE_URL}/api/carrito/${productId}`, {
-      method: "PUT",
-      headers: {
-        ...authHeaders(),
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ cantidad }),
-    });
+    // Fusión carrito invitado con backend
+    fusionarInvitado: (state, action: PayloadAction<Producto[]>) => {
+      action.payload.forEach((p) => {
+        const existing = state.items.find((i) => i.id === p.id);
+        if (existing) {
+          existing.cantidad += p.cantidad;
+        } else {
+          state.items.push(p);
+        }
+      });
+    },
+  },
+  extraReducers: (builder) => {
+    builder
+      // cargarCarrito
+      .addCase(cargarCarrito.pending, (state) => { state.isLoading = true; state.error = null; })
+      .addCase(cargarCarrito.fulfilled, (state, action) => { state.isLoading = false; state.items = action.payload; })
+      .addCase(cargarCarrito.rejected, (state, action) => { state.isLoading = false; state.error = action.payload as string; })
 
-    if (!response.ok) {
-      throw new Error("Error al actualizar cantidad en el servidor");
-    }
-  } catch (err) {
-    console.error(err);
-    throw err;
+      // agregarProducto
+      .addCase(agregarProducto.pending, (state) => { state.isLoading = true; state.error = null; })
+      .addCase(agregarProducto.fulfilled, (state, action) => {
+        state.isLoading = false;
+        const existing = state.items.find(i => i.id === action.payload.id);
+        if (existing) existing.cantidad += action.payload.cantidad;
+        else state.items.push(action.payload);
+      })
+      .addCase(agregarProducto.rejected, (state, action) => { state.isLoading = false; state.error = action.payload as string; })
+
+      // actualizarCantidad
+      .addCase(actualizarCantidad.fulfilled, (state, action) => {
+        const item = state.items.find(i => i.id === action.payload.id);
+        if (item) item.cantidad = action.payload.cantidad;
+      })
+
+      // eliminarProducto
+      .addCase(eliminarProducto.fulfilled, (state, action) => {
+        state.items = state.items.filter(i => i.id !== action.payload);
+      })
+
+      // vaciarCarritoServidor
+      .addCase(vaciarCarritoServidor.fulfilled, (state) => { state.items = []; })
+      .addCase(vaciarCarritoServidor.rejected, (state, action) => { state.error = action.payload as string; });
+  },
+});
+
+// ====================
+// ACCIONES PARA INVITADO
+// ====================
+export const agregarProductoInvitado = (producto: Producto) => (dispatch: AppDispatch) => {
+  const data = localStorage.getItem("carrito");
+  const carrito: Producto[] = data ? JSON.parse(data) : [];
+
+  const existing = carrito.find(p => p.id === producto.id);
+  if (existing) {
+    existing.cantidad += producto.cantidad;
+  } else {
+    carrito.push(producto);
   }
+
+  localStorage.setItem("carrito", JSON.stringify(carrito));
+  dispatch(carritoSlice.actions.setItems(carrito));
 };
 
-
-//Eliminar producto
-export const eliminarItemServidor = async (productId: number) => {
-  const token = localStorage.getItem("token");
-  if (!token?.trim()) return;
-
-  try {
-    const response = await fetch(`${BASE_URL}/api/carrito/producto/${productId}`, {
-      method: "DELETE",
-      headers: authHeaders(),
-    });
-
-    if (!response.ok) {
-      throw new Error("Error al eliminar producto en servidor");
-    }
-  } catch (err) {
-    console.error(err);
-    throw err;
-  }
+// Fusionar carrito invitado al iniciar sesión
+export const fusionarCarritoInvitado = () => (dispatch: AppDispatch) => {
+  const data = localStorage.getItem("carrito");
+  if (!data) return;
+  const carritoInvitado: Producto[] = JSON.parse(data);
+  dispatch(carritoSlice.actions.fusionarInvitado(carritoInvitado));
+  localStorage.removeItem("carrito");
 };
 
-// 👉 Vacía el carrito del usuario logueado en el servidor
-export const vaciarCarritoServidor = async () => {
-  const token = localStorage.getItem("token");
-  if (!token || token.trim() === "") return;
-
-  try {
-    const response = await fetch(`${BASE_URL}/api/carrito/vaciar`, {
-      method: "DELETE",
-      headers: authHeaders(),
-    });
-
-    if (!response.ok) {
-      console.error("Error al vaciar carrito en servidor:", response.statusText);
-    } else {
-      console.log("Carrito vaciado correctamente en servidor");
-    }
-  } catch (err) {
-    console.error("Error vaciando carrito en servidor:", err);
-  }
-};
+export const { reset, setItems, fusionarInvitado } = carritoSlice.actions;
+export default carritoSlice.reducer;

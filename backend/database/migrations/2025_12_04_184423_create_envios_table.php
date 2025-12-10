@@ -13,7 +13,6 @@ return new class extends Migration
 
             // Relación con el pedido (único por pedido)
             $table->foreignId('pedido_id')
-                  ->unique()  // un envío = un pedido
                   ->constrained('pedidos')
                   ->onDelete('cascade');
 

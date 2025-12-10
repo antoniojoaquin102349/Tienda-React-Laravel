@@ -1,38 +1,47 @@
-// src/components/Header.tsx
-import { loadCarritoDesdeServidor } from "../slices/carritoSlice";
-import { useSelector, useDispatch } from "react-redux";
-import { Link, useLocation } from "react-router-dom";
+import { cargarCarrito, reset } from "../slices/carritoSlice";
 import { useEffect, useRef, useState } from "react";
+import { Link, useLocation } from "react-router-dom";
+import { useSelector, useDispatch } from "react-redux";
+import type { RootState, AppDispatch } from "../store";
 import { logoutUser } from "../slices/authSlice";
-import type { RootState } from "../store";
-import type { Producto } from "../types";
+import { persistor } from "../store";
+
 
 const Header = () => {
-  const dispatch = useDispatch();
-  const user = useSelector((state: RootState) => state.auth.user);
-  const userName = user?.name || "Invitado";
+  const dispatch = useDispatch<AppDispatch>();
   const location = useLocation();
 
-  const [searchTerm, setSearchTerm] = useState("");
-  const [carrito, setCarrito] = useState<Producto[]>([]);
-  const carritoCount = carrito.reduce((t, i) => t + i.cantidad, 0);
+  const user = useSelector((state: RootState) => state.auth.user);
+  const token = useSelector((state: RootState) => state.auth.token);
+  const carritoItems = useSelector((state: RootState) => state.carrito.items);
+  const carritoCount = carritoItems.reduce((total, item) => total + item.cantidad, 0);
 
+  const userName = user?.name || "Invitado";
+
+  const [searchTerm, setSearchTerm] = useState("");
   const [isCategoriasOpen, setIsCategoriasOpen] = useState(false);
   const [isConfigOpen, setIsConfigOpen] = useState(false);
 
   const categoriasRef = useRef<HTMLDivElement>(null);
   const configRef = useRef<HTMLDivElement>(null);
-  
-  
 
+  // Cerrar sesión
   const handleLogout = () => {
+    // Limpiar usuario en Redux
     dispatch(logoutUser());
-    localStorage.removeItem("carrito");
+
+    // Limpiar carrito en Redux
+    dispatch(reset());
+
+    // 🔥 Limpiar redux-persist (usuario + carrito)
+    persistor.purge();
+
+    // Limpiar token manualmente
     localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    window.location.reload();
   };
 
+
+  // Buscar productos
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchTerm.trim()) {
@@ -40,13 +49,12 @@ const Header = () => {
     }
   };
 
+  // Click fuera de dropdowns
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      // Cerrar Categorías si clic fuera
       if (categoriasRef.current && !categoriasRef.current.contains(e.target as Node)) {
         setIsCategoriasOpen(false);
       }
-      // Cerrar Configuración si clic fuera
       if (configRef.current && !configRef.current.contains(e.target as Node)) {
         setIsConfigOpen(false);
       }
@@ -55,16 +63,18 @@ const Header = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Cargar carrito al iniciar sesión
   useEffect(() => {
-    if (user)
-      loadCarritoDesdeServidor(setCarrito);
-  }, [user]);
+    if (token) dispatch(cargarCarrito());
+  }, [token, dispatch]);
+
+  const categorias = ["Carrocería", "Suspensión", "Mecánica", "Ruedas", "Electricidad", "Accesorios"];
 
   return (
     <header className="w-full bg-green-700 text-black flex items-center justify-between px-6 py-4 shadow-lg">
       <div className="text-sm font-medium">Hola, {userName}</div>
 
-      {/* BUSCADOR */}
+      {/* Buscador */}
       <form className="flex items-center gap-3" onSubmit={handleSearch}>
         <input
           type="text"
@@ -81,7 +91,7 @@ const Header = () => {
         </button>
       </form>
 
-      {/* NAV */}
+      {/* Navegación */}
       <nav className="flex items-center gap-8 text-sm font-medium">
         {/* Categorías */}
         <div className="relative" ref={categoriasRef}>
@@ -92,10 +102,9 @@ const Header = () => {
           >
             Categorías ▼
           </button>
-
           {isCategoriasOpen && (
             <div className="absolute left-0 top-full mt-2 w-52 bg-white text-black rounded-lg shadow-2xl overflow-hidden z-50">
-              {["Carrocería", "Suspensión", "Mecánica", "Ruedas", "Electricidad", "Accesorios"].map(cat => (
+              {categorias.map((cat) => (
                 <Link
                   key={cat}
                   to={`/productos?cat=${encodeURIComponent(cat)}`}
@@ -119,7 +128,7 @@ const Header = () => {
           )}
         </Link>
 
-        {/* CONFIGURACIÓN */}
+        {/* Configuración */}
         {user && (
           <div className="relative" ref={configRef}>
             <button
@@ -129,21 +138,12 @@ const Header = () => {
             >
               Configuración ▼
             </button>
-
             {isConfigOpen && (
               <div className="absolute left-0 top-full mt-2 w-52 bg-white text-black rounded-lg shadow-2xl overflow-hidden z-50">
-                <Link
-                  to="/historialpedidos"
-                  className="block px-5 py-3 hover:bg-gray-100 transition"
-                  onClick={() => setIsConfigOpen(false)}
-                >
+                <Link to="/historialpedidos" className="block px-5 py-3 hover:bg-gray-100 transition">
                   Mis Pedidos
                 </Link>
-                <Link
-                  to="/datos"
-                  className="block px-5 py-3 hover:bg-gray-100 transition"
-                  onClick={() => setIsConfigOpen(false)}
-                >
+                <Link to="/datos" className="block px-5 py-3 hover:bg-gray-100 transition">
                   Mis Datos
                 </Link>
               </div>
@@ -155,7 +155,7 @@ const Header = () => {
           Acerca de
         </Link>
 
-        {/* LOGIN / LOGOUT */}
+        {/* Login / Logout */}
         {user ? (
           <button
             onClick={handleLogout}
@@ -165,14 +165,11 @@ const Header = () => {
           </button>
         ) : (
           <>
-            {/* Mostrar "Iniciar sesión" solo si no estamos en /login */}
             {location.pathname !== "/login" && (
               <Link to="/login" className="hover:text-yellow-300 transition">
                 Iniciar sesión
               </Link>
             )}
-
-            {/* Mostrar "Registrarse" solo si no estamos en /register */}
             {location.pathname !== "/register" && (
               <Link to="/register" className="hover:text-yellow-300 transition">
                 Registrarse
@@ -181,7 +178,7 @@ const Header = () => {
           </>
         )}
 
-        {/* Botón Inicio visible solo si NO estamos en "/" */}
+        {/* Botón inicio */}
         {location.pathname !== "/" && (
           <Link
             to="/"

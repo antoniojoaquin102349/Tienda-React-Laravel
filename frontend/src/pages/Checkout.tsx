@@ -1,31 +1,18 @@
 import MensajeModal from "../components/MensajeModal";
 import { Link, useNavigate } from "react-router-dom";
-import { vaciarCarritoServidor } from "../slices/carritoSlice";
-import { setCredentials } from "../slices/authSlice";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { Api } from "../services/Api";
-import { store } from "../store";
-
+import { useDispatch, useSelector } from "react-redux";
+import type { RootState, AppDispatch } from "../store";
+import { vaciarCarritoServidor } from "../slices/carritoSlice";
+import { setCredentials } from "../slices/authSlice";
 
 const Checkout = () => {
-  const [carrito, setCarrito] = useState<any[]>([]);
-  const [, setMensaje] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [exito, setExito] = useState(false);
-  const [_guardadoPrevio, setGuardadoPrevio] = useState(false);
+  const dispatch = useDispatch<AppDispatch>();
+  const carritoItems = useSelector((state: RootState) => state.carrito.items);
   const navigate = useNavigate();
-
-  useEffect(() => {
-    const data = localStorage.getItem("carrito");
-    if (data) {
-      setCarrito(JSON.parse(data));
-    } else {
-      navigate("/");
-    }
-
-  }, [navigate]);
 
   const [form, setForm] = useState({
     nombre: "",
@@ -38,47 +25,32 @@ const Checkout = () => {
     pago: "tarjeta",
     guardarPago: false,
     notas: "",
-    // Campos tarjeta
     numeroTarjeta: "",
     vencimiento: "",
     cvv: "",
     nombreTarjeta: "",
   });
-
   const [errores, setErrores] = useState<any>({});
+  const [loading, setLoading] = useState(false);
+  const [exito, setExito] = useState(false);
+  const [mostrarLoginModal, setMostrarLoginModal] = useState(false);
 
-  const handleChange = (e: any) => {
-    const { name, value, type } = e.target;
-    const checked =
-      type === "checkbox"
-        ? (e.target as HTMLInputElement).checked
-        : value;
-
-    setForm({
-      ...form,
-      [name]: checked,
-    });
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const target = e.target;
+    const { name, type, value } = target;
+    const checked = type === "checkbox" ? (target as HTMLInputElement).checked : undefined;
+    setForm({ ...form, [name]: type === "checkbox" ? checked : value });
   };
 
   const validarFormulario = () => {
     const err: any = {};
-
     if (!form.nombre.trim()) err.nombre = "El nombre es obligatorio";
-
-    if (!form.email.trim()) {
-      err.email = "El email es obligatorio";
-    } else {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(form.email)) {
-        err.email = `Email "${form.email}" incorrecto`;
-      }
-    }
-    if (!form.telefono.trim()) {err.telefono = "El teléfono es obligatorio";}
+    if (!form.email.trim()) err.email = "El email es obligatorio";
+    if (!form.telefono.trim()) err.telefono = "El teléfono es obligatorio";
     if (!form.direccion.trim()) err.direccion = "La dirección es obligatoria";
     if (!form.ciudad.trim()) err.ciudad = "La ciudad es obligatoria";
     if (!form.cp.trim()) err.cp = "El código postal es obligatorio";
 
-    // Validación de tarjeta si se selecciona tarjeta
     if (form.pago === "tarjeta") {
       if (!form.numeroTarjeta.trim()) err.numeroTarjeta = "Número de tarjeta obligatorio";
       if (!form.vencimiento.trim()) err.vencimiento = "Fecha de vencimiento obligatoria";
@@ -90,80 +62,56 @@ const Checkout = () => {
     return Object.keys(err).length === 0;
   };
 
-  const total = carrito.reduce(
-    (acc: number, item: any) =>
-      acc + (parseFloat(item.precio) || 0) * (item.cantidad || 1), 0
-  );
+  // Calcular total de manera segura
+  const total = carritoItems.reduce((acc, item) => {
+    const precioNum = typeof item.precio === "number" ? item.precio : parseFloat(String(item.precio)) || 0;
+    const cantidadNum = typeof item.cantidad === "number" ? item.cantidad : parseInt(String(item.cantidad), 10) || 1;
+    return acc + precioNum * cantidadNum;
+  }, 0);
 
-  const [mostrarLoginModal, setMostrarLoginModal] = useState(false);
-  const manejarLogin = () => {setMostrarLoginModal(false); navigate("/login");};
-  
-  // Función para realizar el pedido
   const realizarPedido = async () => {
-
-    if (!validarFormulario() || loading) 
-      return;
-
+    if (!validarFormulario() || loading) return;
     setLoading(true);
-    setMensaje("");
 
     try {
-      // Verificar si el email ya existe en el backend
+      // Verificar si el email ya existe
       const existeResp = await Api.post("/check-email", { email: form.email });
       const usuarioExiste = (existeResp as any).data?.existe ?? false;
 
-      // Si el usuario existe pero no tiene sesión activa, obligar login
       if (usuarioExiste && !localStorage.getItem("token")) {
-        console.log("Entrando en la condición para mostrar el modal de login");
         setMostrarLoginModal(true);
+        setLoading(false);
         return;
       }
 
-      // Continuar con el pedido (usuario nuevo o ya logueado)
-      const response = await Api.post("/guardar-pedido", { cliente: form, carrito });
+      // Guardar pedido en backend
+      const response = await Api.post("/guardar-pedido", { cliente: form, carrito: carritoItems });
       const data = (response as any).data;
 
-      if (!data || !data.success) {
-        throw new Error(data?.message || "Error al procesar el pedido");
-      }
+      if (!data || !data.success) throw new Error(data?.message || "Error al procesar el pedido");
 
-      // Manejo del token y credenciales
+      // Manejo de token si viene del backend
       const token = data.token ?? (response as any).token;
       if (token) {
         localStorage.setItem("token", token);
-        try {
-          const meResp = await Api.get("/me");
-          const me = (meResp as any).data;
-          if (me?.user) {
-            localStorage.setItem("user", JSON.stringify(me.user));
-            store.dispatch(setCredentials({ token, user: me.user }));
-          }
-        } catch {
-          console.warn("No se pudo obtener información del usuario");
+        const meResp = await Api.get("/me");
+        const me = (meResp as any).data;
+        if (me?.user) {
+          localStorage.setItem("user", JSON.stringify(me.user));
+          dispatch(setCredentials({ token, user: me.user }));
         }
       }
 
-      // Limpiar carrito y redirigir usando la función existente
-      try {
-        await vaciarCarritoServidor(); // vacía frontend y backend
-      } catch (err) {
-        console.error("No se pudo vaciar el carrito después del pedido:", err);
-      }
-      // 1️⃣ Vaciar estado React (si tienes el carrito en contexto o estado, usa eso)
-      setCarrito?.([]);
+      // Vaciar carrito en backend y frontend
+      await dispatch(vaciarCarritoServidor()).unwrap();
 
-      // 2️⃣ Borrar del localStorage
-      localStorage.removeItem("carrito");
-
-      // Mostrar éxito y redirigir
       setExito(true);
       setTimeout(() => navigate("/", { replace: true }), 2000);
-
     } catch (error: any) {
       console.error(error);
-      setMensaje(error.message || "Error al procesar el pedido");
+      alert(error.message || "Error al procesar el pedido");
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
   };
 
@@ -338,7 +286,7 @@ const Checkout = () => {
             textoBotonSecundario="Cancelar"
             accionBotonSecundario="redirigir"
             urlRedirigir="/"
-            onConfirmar={manejarLogin}             
+            onConfirmar={() => navigate("/login")}             
           />
           <Link to="/cesta" className="block mt-4 text-gray-500 hover:underline">← Volver al carrito</Link>
         </div>
@@ -346,7 +294,7 @@ const Checkout = () => {
       
       {/* FOOTER */}
       <Footer/>
-      
+
     </div>
   );
 };
