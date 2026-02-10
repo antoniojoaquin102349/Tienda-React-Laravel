@@ -34,8 +34,7 @@ Instalación
 
 Clonar el repositorio:
 
-git clone https://github.com/tu-usuario/tienda-todoterrenos.git
-cd tienda-todoterrenos
+git@github.com:antoniojoaquin102349/Tienda-React-Laravel.git
 
 Backend (Laravel)
 cd backend
